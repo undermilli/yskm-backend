@@ -7,7 +7,8 @@ const AuthService = require("../services/auth.service");
 // eslint-disable-next-line consistent-return
 const authMiddleware = async (req, res, next) => {
   const token = req.header("Authorization");
-
+  console.log("req.header: ", req);
+  console.log("token: ", token);
   if (!token || typeof token !== "string") {
     return res.status(statusCodes.UNAUTHORIZED).json({
       errorCode: statusCodes.UNAUTHORIZED,

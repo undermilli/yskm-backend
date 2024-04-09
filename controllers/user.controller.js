@@ -50,6 +50,7 @@ exports.update = async (req, res) => {
       createdAt: updatedUser.createdAt,
       lastVisited: updatedUser.lastVisited,
       tier: updatedUser.tier,
+      questionsAnsweredNb: updatedUser.questionsAnsweredNb,
     },
   });
 };

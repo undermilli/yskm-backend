@@ -7,15 +7,6 @@ const authMiddleware = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
-// Currently can read database documents
-router
-  .route("/access-db")
-  .get(authMiddleware, tryCatch(DataController.accessDB));
-
-// 실험중 ///
-router
-  .route("/set-tier")
-  .post(authMiddleware, tryCatch(DataController.setTier));
 router
   .route("/update-tier-and-score")
   .post(authMiddleware, tryCatch(DataController.updateTierAndScore));

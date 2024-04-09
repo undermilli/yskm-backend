@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema(
       default: " ",
       maxtength: 2,
     },
+    questionsAnsweredNb: {
+      type: Number,
+      default: 0,
+    },
     scoreLastUpdate: {
       type: Date,
       default: Date.now,
