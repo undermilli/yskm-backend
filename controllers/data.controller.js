@@ -2,7 +2,6 @@
 const AuthService = require("../services/auth.service");
 
 const { MongoClient } = require("mongodb");
-const { update } = require("./user.controller");
 const uri = process.env.MONGODB_URL;
 const client = new MongoClient(uri);
 
@@ -26,10 +25,6 @@ const GOLD_TO_MASTER_TIER_FILTER = {
 const GRANDMASTER_FILTER = {
   YEAR: { $in: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
   LEAGUE: { $in: ["LCK", "LPL", "LEC", "LCS"] },
-};
-
-exports.info = async (req, res) => {
-  res.json("Hello!");
 };
 
 exports.accessDB = async (req, res) => {
@@ -70,7 +65,6 @@ exports.accessDB = async (req, res) => {
     const updatedScore = userScore + 1;
     req.user.score = updatedScore;
     const updatedUser = await AuthService.saveUser(req.user);
-    console.log(`이게 업데이트 이후 유저 점수임 ${req.user.score}`);
     //
   } finally {
     await client.close();
@@ -415,13 +409,6 @@ exports.updateTierAndScore = async (req, res) => {
       }
     }
 
-    console.log(`현재 티어 ${currentTier}`);
-    console.log(`현재 점수 ${currentScore}`);
-    console.log(`새로운 티어 ${updatedTier}`);
-    console.log(`새로운 점수 ${updatedScore}`);
-
-    // TODO: 어떻게 user info 받냐에 따라서 둘중 한가지 저장방법 쓸것.
-
     // req.user.tier = updatedTier;
     // req.user.score = updatedScore;
     // await AuthService.saveUser(req.user);
@@ -440,18 +427,6 @@ exports.updateTierAndScore = async (req, res) => {
     await client.close();
   }
 };
-
-// TODO: (getQuestions) 티어에 맞는 정답 범위의 모든 문제들을 가져오는 function.
-// TODO: (updateTierAndScore) 점수 변동에 따른 티어, 점수변동 유무 확인하고 티어와 점수 set하는 function.
-
-// TODO: 문제 만들고 정답/오답 확인하는 function ???
-//       이 경우 function 하나는 티어배치고사 문제 function, 다른 하나는 일반 문제 function.
-//       현재 생각은, 티어배치고사 문제 function의 경우 loop 5번 돌려서 각 loop에서 문제출제후 점수업데이트, loop 끝나면 종료.
-//       일반 문제 function의 경우 무한 loop, 클라이언트가 "퀴즈종료버튼"이나 "창닫기" 등의 request를 보낼경우 무한 loop 종료.
-
-// TODO: 점수 문제랑 답안을 만들경우.
-//       티어가 변경되지 않는다면 variable에 해당티어 범위문제들 저장해서 latency 줄이는것도 방법일듯.
-//       또한 답안의 경우 어짜피 Player Name들이 될테니 미리 variable에 모든 documents 쿼리해서 unique한 Player Name값들 저장해놓으면 될듯.
 
 const mapTierToFilter = (tier) => {
   if (["I4", "I3", "I2", "I1"].includes(tier)) {
@@ -495,7 +470,6 @@ exports.sendQuestionToFrontend = async (req, res) => {
     const db = client.db("yskm");
     const coll = db.collection("userdb");
     const currentTier = req.user.tier;
-    // Fetch all documents that match the user's tier
     const filter = mapTierToFilter(currentTier);
     const questions = await coll.find(filter).toArray();
     if (questions.length === 0) {
@@ -504,23 +478,19 @@ exports.sendQuestionToFrontend = async (req, res) => {
         .json({ error: "No questions found for this tier" });
     }
 
-    // Randomly select one document..
     const selectedQuestion =
       questions[Math.floor(Math.random() * questions.length)];
 
-    // Get 3 other multiple choice answers.
     const multipleChoices = await getOtherMultipleChoiceAnswers(
       selectedQuestion,
       coll,
       currentTier,
     );
 
-    // Shuffle the multipleChoices array
     const shuffledMultipleChoices = multipleChoices.sort(
       () => 0.5 - Math.random(),
     );
 
-    // Save the question, multipleChoices, and the correct answer to the database
     const questionDetails = {
       YEAR: selectedQuestion.YEAR,
       POS: selectedQuestion.POS,
@@ -533,7 +503,6 @@ exports.sendQuestionToFrontend = async (req, res) => {
       LEAGUE: selectedQuestion.LEAGUE,
     };
 
-    // Constructing response with the details needed
     const response = {
       question: questionDetails,
       multipleChoices: shuffledMultipleChoices,
@@ -554,26 +523,8 @@ async function getOtherMultipleChoiceAnswers(
   coll,
   currentTier,
 ) {
-  ////////////////////////////
-  // 사지선다 가능한 경우의수 //
-  ////////////////////////////
-  // 이거는 1st API에 들어가는 function.
-
-  // [년도 + 랜덤보기]
-  // 가능한 문제들 중에 예를들어 답이 "23년 CHOVY"라면,
-  // 모든 플레이어들 중 23년도에 활동한 모든 플레이어
-
-  // [년도 + 동일리그]
-  // 가능한 문제들 중에 예를들어 답이 "23년 CHOVY LCK"라면,
-  // 모든 플레이어들 중 23년도에 LCK에서 활동한 모든 플레이어
-
-  // [년도 + 동일리그 + 포지션]
-  // 가능한 문제들 중에 예를들어 답이 "23년 CHOVY LCK MidLaner"라면,
-  // 모든 플레이어들 중 23년도에 LCK에서 MinLaner로 활동한 모든 플레이어
-
   let filter;
 
-  // 보기 난이도: 년도 + 랜덤보기 (아이언, 브론즈, 실버, 골드)
   if ([" ", "I4", "I3", "I2", "I1"].includes(currentTier)) {
     return ["FAKER", "FAKER", "FAKER", "FAKER"];
   } else if (["B4", "B3", "B2", "B1"]) {
@@ -628,23 +579,18 @@ async function getOtherMultipleChoiceAnswers(
       LEAGUE: selectedQuestion.LEAGUE,
       IGN: { $ne: selectedQuestion.IGN },
     };
-  }
-  // 보기 난이도: 년도 + 동일리그 + 포지션 + 랜덤보기 (마스터, 그랜드마스터, 챌린저)
-  else if (["M", "GM", "C"].includes(currentTier)) {
+  } else if (["M", "GM", "C"].includes(currentTier)) {
     filter = {
       YEAR: selectedQuestion.YEAR,
       LEAGUE: selectedQuestion.LEAGUE,
       POS: selectedQuestion.POS,
-      IGN: { $ne: selectedQuestion.IGN }, // Exclude the selected document's IGN
+      IGN: { $ne: selectedQuestion.IGN },
     };
   }
-
-  // Fetch documents that match the conditions
   const potentialAnswers = await coll.distinct("IGN", filter);
-  console.log(potentialAnswers);
   // Shuffle the array and pick the first 3 IGNs
   const shuffled = potentialAnswers.sort(() => 0.5 - Math.random());
   const selectedIGNs = shuffled.slice(0, 3);
 
-  return [selectedQuestion.IGN, ...selectedIGNs]; // Ensure the correct answer is included
+  return [selectedQuestion.IGN, ...selectedIGNs];
 }

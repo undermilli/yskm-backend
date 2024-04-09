@@ -7,8 +7,6 @@ const authMiddleware = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
-router.route("/").get(authMiddleware, tryCatch(DataController.info));
-
 // Currently can read database documents
 router
   .route("/access-db")
