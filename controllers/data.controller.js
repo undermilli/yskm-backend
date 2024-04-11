@@ -1,10 +1,7 @@
 // 실험중
 const User = require("../models/user.model");
+const UserDb = require("../models/userdb.model");
 const AuthService = require("../services/auth.service");
-
-const { MongoClient } = require("mongodb");
-const uri = process.env.MONGODB_URL;
-const client = new MongoClient(uri);
 
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
@@ -101,31 +98,19 @@ const handleClassicQuestions = (currentScore, currentTier, isAnswerCorrect) => {
 exports.updateTierAndScore = async (req, res) => {
   try {
     console.log("updateTierAndScore");
-    await client.connect();
-    const db = client.db("test");
-    const coll = db.collection("users");
     const userID = req.user._id;
-    const currentTier = req.user.tier;
-    const currentScore = req.user.score;
-    const questionsAnsweredNb = req.user.questionsAnsweredNb;
-    const isAnswerCorrect = req.body.isAnswerCorrect;
 
-    let updatedTier = currentTier;
-    let updatedScore = currentScore;
-    if (questionsAnsweredNb === 0) {
-      const response = await handlePlacementQuestions(
-        currentTier,
-        isAnswerCorrect,
-        questionsAnsweredNb,
-      );
-      console.log(response);
-    } else {
-      handleClassicQuestions(currentScore, currentTier, isAnswerCorrect);
-    }
-    // Update the user's document with the new tier and score
-    await coll.updateOne(
+    console.log("userID", userID);
+    const datas = await User.findOne({ _id: userID });
+    console.log(datas)
+    const tier = datas.tier;
+    const score = datas.score;
+    console.log("currentTier", tier);
+    console.log("currentScore", score);
+
+    await User.updateOne(
       { _id: userID },
-      { $set: { tier: updatedTier, score: updatedScore } },
+      { $set: { tier: tier, score: score+10 } },
     );
 
     res.json({ message: "Tier and score updated successfully" });
@@ -175,12 +160,12 @@ const mapTierToFilter = (tier) => {
 
 exports.sendQuestionToFrontend = async (req, res) => {
   try {
-    await client.connect();
-    const db = client.db("yskm");
-    const coll = db.collection("userdb");
-    const currentTier = req.user.tier;
+    const userID = req.user._id;
+    userInfo = await User.findOne({ _id: userID});
+    const currentTier = userInfo.tier;
+    console.log("currentTier", currentTier);
     const filter = mapTierToFilter(currentTier);
-    const questions = await coll.find(filter).toArray();
+    const questions = await UserDb.find(filter);
     if (questions.length === 0) {
       return res
         .status(404)
@@ -192,10 +177,9 @@ exports.sendQuestionToFrontend = async (req, res) => {
 
     const multipleChoices = await getOtherMultipleChoiceAnswers(
       selectedQuestion,
-      coll,
       currentTier,
     );
-
+    console.log("multipleChoices", multipleChoices);
     const shuffledMultipleChoices = multipleChoices.sort(
       () => 0.5 - Math.random(),
     );
@@ -229,7 +213,6 @@ exports.sendQuestionToFrontend = async (req, res) => {
 
 async function getOtherMultipleChoiceAnswers(
   selectedQuestion,
-  coll,
   currentTier,
 ) {
   let filter;
@@ -296,7 +279,7 @@ async function getOtherMultipleChoiceAnswers(
       IGN: { $ne: selectedQuestion.IGN },
     };
   }
-  const potentialAnswers = await coll.distinct("IGN", filter);
+  const potentialAnswers = await UserDb.distinct("IGN", filter);
   // Shuffle the array and pick the first 3 IGNs
   const shuffled = potentialAnswers.sort(() => 0.5 - Math.random());
   const selectedIGNs = shuffled.slice(0, 3);
