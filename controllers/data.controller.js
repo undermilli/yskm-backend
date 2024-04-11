@@ -99,18 +99,37 @@ exports.updateTierAndScore = async (req, res) => {
   try {
     console.log("updateTierAndScore");
     const userID = req.user._id;
-
-    console.log("userID", userID);
-    const datas = await User.findOne({ _id: userID });
-    console.log(datas)
+    const datas = req.user; //req.user is like user {
+    //   _id: new ObjectId("66177440832ed652b92c9252"),
+    //   username: 'autre',
+    //   password: '$2a$10$YtR9dLnLoq1XHqAimaso2OOjdPNBraPPKAODXnLdD4K4JeoIyTPx2',
+    //   score: 170,
+    //   tier: ' ',
+    //   questionsAnsweredNb: 0,
+    //   description: '',
+    //   email: '',
+    //   scoreLastUpdate: 2024-04-11T05:25:20.290Z,
+    //   lastVisited: 2024-04-11T05:33:37.129Z,
+    //   refreshTokens: [
+    //     {
+    //       token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImF1dHJlIiwiaWF0IjoxNzEyODEzMTQwLCJleHAiOjE3MjA1ODkxNDB9.l1aWpxwlgmI5WgcPJb6hD4xuJkVKoNyl89h1nd6ngNQ',
+    //       expiresIn: 2024-05-11T05:25:40.862Z,
+    //       _id: new ObjectId("66177440832ed652b92c9253")
+    //     }
+    //   ],
+    //   createdAt: 2024-04-11T05:25:20.304Z,
+    //   updatedAt: 2024-04-11T05:33:37.129Z,
+    //   userNumber: 10000001,
+    //   __v: 0
+    // }
+    //const datas = await User.findOne({ _id: userID }); // tier is already passed as argument so no need to get it from the db -> slow down process ~20ms
+    console.log(datas);
     const tier = datas.tier;
     const score = datas.score;
-    console.log("currentTier", tier);
-    console.log("currentScore", score);
 
     await User.updateOne(
       { _id: userID },
-      { $set: { tier: tier, score: score+10 } },
+      { $set: { tier: tier, score: score + 10 } },
     );
 
     res.json({ message: "Tier and score updated successfully" });
@@ -161,7 +180,7 @@ const mapTierToFilter = (tier) => {
 exports.sendQuestionToFrontend = async (req, res) => {
   try {
     const userID = req.user._id;
-    userInfo = await User.findOne({ _id: userID});
+    userInfo = await User.findOne({ _id: userID });
     const currentTier = userInfo.tier;
     console.log("currentTier", currentTier);
     const filter = mapTierToFilter(currentTier);
@@ -211,10 +230,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
   }
 };
 
-async function getOtherMultipleChoiceAnswers(
-  selectedQuestion,
-  currentTier,
-) {
+async function getOtherMultipleChoiceAnswers(selectedQuestion, currentTier) {
   let filter;
 
   if ([" ", "I4", "I3", "I2", "I1"].includes(currentTier)) {
