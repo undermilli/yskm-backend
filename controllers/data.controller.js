@@ -88,14 +88,7 @@ const handlePlacementQuestions = async (
       },
     },
   );
-  if (response) {
-    return {
-      tier: newTier,
-      points: 0,
-    };
-  } else {
-    return null;
-  }
+  return response;
 };
 
 const handleClassicQuestions = async (
@@ -107,63 +100,28 @@ const handleClassicQuestions = async (
 ) => {
   const updatedScore = isAnswerCorrect ? currentScore + 80 : currentScore - 50;
   const tierIndex = TIER_LIST.indexOf(currentTier);
-  let response;
+  let newScore = currentScore;
+  let newTier = currentTier;
   // demote after 2 wrong answers in a row
   if (updatedScore < -50) {
-    const newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
-    const newTier = TIER_LIST[tierIndex - 1];
-    response = await User.findOneAndUpdate(
-      { _id: uid },
-      {
-        $set: {
-          score: newScore,
-          tier: newTier,
-          questionsAnsweredNb: questionsAnsweredNb + 1,
-        },
-      },
-    );
-    if (response) {
-      response = {
-        tier: newTier,
-        points: newScore,
-      };
-    }
+    newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
+    newTier = TIER_LIST[tierIndex - 1];
   } else if (updatedScore >= 100) {
-    const newScore = updatedScore - 100;
-    const newTier = TIER_LIST[tierIndex + 1];
-    response = await User.findOneAndUpdate(
-      { _id: uid },
-      {
-        $set: {
-          score: newScore,
-          tier: newTier,
-          questionsAnsweredNb: questionsAnsweredNb + 1,
-        },
-      },
-    );
-    if (response) {
-      response = {
-        tier: newTier,
-        points: newScore,
-      };
-    }
+    newScore = updatedScore - 100;
+    newTier = TIER_LIST[tierIndex + 1];
   } else {
-    response = await User.findOneAndUpdate(
-      { _id: uid },
-      {
-        $set: {
-          score: updatedScore,
-          questionsAnsweredNb: questionsAnsweredNb + 1,
-        },
-      },
-    );
-    if (response) {
-      response = {
-        tier: currentTier,
-        points: updatedScore,
-      };
-    }
+    newScore = updatedScore;
   }
+  const response = await User.findOneAndUpdate(
+    { _id: uid },
+    {
+      $set: {
+        score: newScore,
+        tier: newTier,
+        questionsAnsweredNb: questionsAnsweredNb + 1,
+      },
+    },
+  );
   return response;
 };
 
