@@ -201,7 +201,6 @@ exports.updateTierAndScore = async (req, res) => {
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      console.log(" 1st response: ", response);
       if (response.status.code === 200) {
         return res.status(200).json(response);
       } else {
@@ -217,7 +216,6 @@ exports.updateTierAndScore = async (req, res) => {
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      console.log(" 2nd response: ", response);
       if (response.status.code === 200) {
         return res.status(200).json(response);
       } else {
