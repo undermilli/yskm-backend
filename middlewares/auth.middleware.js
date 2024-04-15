@@ -16,9 +16,6 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
-
-    console.log(decoded)
-    
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const expirationTime = decoded.exp;
 
@@ -28,7 +25,6 @@ const authMiddleware = async (req, res, next) => {
         errorCode: statusCodes.UNAUTHORIZED,
       });
     }
-
 
     const user = await UserService.getUser(decoded.userId);
 
