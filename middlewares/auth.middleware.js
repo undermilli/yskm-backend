@@ -7,7 +7,6 @@ const AuthService = require("../services/auth.service");
 // eslint-disable-next-line consistent-return
 const authMiddleware = async (req, res, next) => {
   const token = req.header("Authorization");
-
   if (!token || typeof token !== "string") {
     return res.status(statusCodes.UNAUTHORIZED).json({
       errorCode: statusCodes.UNAUTHORIZED,
@@ -17,7 +16,6 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
-
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const expirationTime = decoded.exp;
 
