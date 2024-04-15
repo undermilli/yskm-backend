@@ -1,8 +1,7 @@
 // 실험중
 const User = require("../models/user.model");
 const UserDb = require("../models/userdb.model");
-const AuthService = require("../services/auth.service");
-
+const httpStatus = require("http-status");
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
 const BRONZE_TIER_FILTER = {
@@ -91,14 +90,11 @@ const handlePlacementQuestions = async (
   );
   if (response) {
     response = {
-      status: { code: 200, message: "Score and tier updated successfully" },
-      data: {
-        tier: newTier,
-        points: 0,
-      },
+      tier: newTier,
+      points: 0,
     };
   } else {
-    return { status: 500, error: "Failed to update score and tier" };
+    return null;
   }
 };
 
@@ -109,81 +105,66 @@ const handleClassicQuestions = async (
   isAnswerCorrect,
   questionsAnsweredNb,
 ) => {
-  let response = { status: 500, error: "Failed to update score and tier" };
-  try {
-    const updatedScore = isAnswerCorrect
-      ? currentScore + 80
-      : currentScore - 50;
-    const tierIndex = TIER_LIST.indexOf(currentTier);
-    // demote after 2 wrong answers in a row
-    if (updatedScore < -50) {
-      const newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
-      const newTier = TIER_LIST[tierIndex - 1];
-      response = await User.findOneAndUpdate(
-        { _id: uid },
-        {
-          $set: {
-            score: newScore,
-            tier: newTier,
-            questionsAnsweredNb: questionsAnsweredNb + 1,
-          },
+  const updatedScore = isAnswerCorrect ? currentScore + 80 : currentScore - 50;
+  const tierIndex = TIER_LIST.indexOf(currentTier);
+  let response = null;
+  // demote after 2 wrong answers in a row
+  if (updatedScore < -50) {
+    const newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
+    const newTier = TIER_LIST[tierIndex - 1];
+    response = await User.findOneAndUpdate(
+      { _id: uid },
+      {
+        $set: {
+          score: newScore,
+          tier: newTier,
+          questionsAnsweredNb: questionsAnsweredNb + 1,
         },
-      );
-      if (response) {
-        response = {
-          status: { code: 200, message: "Score and tier updated successfully" },
-          data: {
-            tier: newTier,
-            points: newScore,
-          },
-        };
-      }
-    } else if (updatedScore >= 100) {
-      const newScore = updatedScore - 100;
-      const newTier = TIER_LIST[tierIndex + 1];
-      response = await User.findOneAndUpdate(
-        { _id: uid },
-        {
-          $set: {
-            score: newScore,
-            tier: newTier,
-            questionsAnsweredNb: questionsAnsweredNb + 1,
-          },
-        },
-      );
-      if (response) {
-        response = {
-          status: { code: 200, message: "Score and tier updated successfully" },
-          data: {
-            tier: newTier,
-            points: newScore,
-          },
-        };
-      }
-    } else {
-      response = await User.findOneAndUpdate(
-        { _id: uid },
-        {
-          $set: {
-            score: updatedScore,
-            questionsAnsweredNb: questionsAnsweredNb + 1,
-          },
-        },
-      );
-      if (response) {
-        response = {
-          status: { code: 200, message: "Score and tier updated successfully" },
-          data: {
-            tier: currentTier,
-            points: updatedScore,
-          },
-        };
-      }
+      },
+    );
+    if (response) {
+      response = {
+        tier: newTier,
+        points: newScore,
+      };
     }
-    return response;
-  } catch (error) {
-    return { status: 500, error: error };
+  } else if (updatedScore >= 100) {
+    const newScore = updatedScore - 100;
+    const newTier = TIER_LIST[tierIndex + 1];
+    response = await User.findOneAndUpdate(
+      { _id: uid },
+      {
+        $set: {
+          score: newScore,
+          tier: newTier,
+          questionsAnsweredNb: questionsAnsweredNb + 1,
+        },
+      },
+    );
+    if (response) {
+      response = {
+        tier: newTier,
+        points: newScore,
+      };
+    }
+  } else {
+    response = await User.findOneAndUpdate(
+      { _id: uid },
+      {
+        $set: {
+          score: updatedScore,
+          questionsAnsweredNb: questionsAnsweredNb + 1,
+        },
+      },
+    );
+    if (response) {
+      response = {
+        tier: currentTier,
+        points: updatedScore,
+      };
+    }
   }
+  return response;
 };
 
 exports.updateTierAndScore = async (req, res) => {
@@ -201,13 +182,7 @@ exports.updateTierAndScore = async (req, res) => {
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      if (response.status.code === 200) {
-        return res.status(200).json(response);
-      } else {
-        return res
-          .status(500)
-          .json({ error: "Failed to update tier and score" });
-      }
+      return res.status(httpStatus.OK).json(response);
     } else {
       const response = await handleClassicQuestions(
         uid,
@@ -216,17 +191,10 @@ exports.updateTierAndScore = async (req, res) => {
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      if (response.status.code === 200) {
-        return res.status(200).json(response);
-      } else {
-        return res
-          .status(500)
-          .json({ error: "Failed to update tier and score" });
-      }
+      return res.status(httpStatus.OK).json(response);
     }
   } catch (error) {
-    console.error("Error updating tier and score:", error);
-    return res.status(500).json({ error: "Failed to update tier and score" });
+    return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 
@@ -275,7 +243,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
     const questions = await UserDb.find(filter);
     if (questions.length === 0) {
       return res
-        .status(404)
+        .status(httpStatus.NOT_FOUND)
         .json({ error: "No questions found for this tier" });
     }
 
@@ -310,10 +278,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error("Error sending question to frontend:", error);
-    res.status(500).json({ error: "Failed to send question to frontend" });
-  } finally {
-    await client.close();
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 
