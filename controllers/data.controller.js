@@ -89,7 +89,7 @@ const handlePlacementQuestions = async (
     },
   );
   if (response) {
-    response = {
+    return {
       tier: newTier,
       points: 0,
     };
@@ -107,7 +107,7 @@ const handleClassicQuestions = async (
 ) => {
   const updatedScore = isAnswerCorrect ? currentScore + 80 : currentScore - 50;
   const tierIndex = TIER_LIST.indexOf(currentTier);
-  let response = null;
+  let response;
   // demote after 2 wrong answers in a row
   if (updatedScore < -50) {
     const newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
