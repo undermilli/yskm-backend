@@ -100,7 +100,7 @@ const handleClassicQuestions = async (
 ) => {
   const updatedScore = isAnswerCorrect ? currentScore + 80 : currentScore - 50;
   const tierIndex = TIER_LIST.indexOf(currentTier);
-  let newScore = currentScore;
+  let newScore = updatedScore;
   let newTier = currentTier;
   // demote after 2 wrong answers in a row
   if (updatedScore < -50) {
@@ -109,8 +109,6 @@ const handleClassicQuestions = async (
   } else if (updatedScore >= 100) {
     newScore = updatedScore - 100;
     newTier = TIER_LIST[tierIndex + 1];
-  } else {
-    newScore = updatedScore;
   }
   const response = await User.findOneAndUpdate(
     { _id: uid },
@@ -133,24 +131,24 @@ exports.updateTierAndScore = async (req, res) => {
     const questionsAnsweredNb = datas.questionsAnsweredNb;
     const isAnswerCorrect = req.body.isAnswerCorrect;
     const uid = req.user._id;
+    let response;
     if (questionsAnsweredNb < 5) {
-      const response = await handlePlacementQuestions(
+      response = await handlePlacementQuestions(
         uid,
         tier,
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      return res.status(httpStatus.OK).json(response);
     } else {
-      const response = await handleClassicQuestions(
+      response = await handleClassicQuestions(
         uid,
         score,
         tier,
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      return res.status(httpStatus.OK).json(response);
     }
+    return res.status(httpStatus.OK).json(response);
   } catch (error) {
     return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
