@@ -89,7 +89,17 @@ const handlePlacementQuestions = async (
       },
     },
   );
-  return response;
+  if (response) {
+    response = {
+      status: { code: 200, message: "Score and tier updated successfully" },
+      data: {
+        tier: newTier,
+        points: 0,
+      },
+    };
+  } else {
+    return { status: 500, error: "Failed to update score and tier" };
+  }
 };
 
 const handleClassicQuestions = async (
@@ -99,7 +109,7 @@ const handleClassicQuestions = async (
   isAnswerCorrect,
   questionsAnsweredNb,
 ) => {
-  console.log("handleClassicQuestions");
+  let response = { status: 500, error: "Failed to update score and tier" };
   try {
     const updatedScore = isAnswerCorrect
       ? currentScore + 80
@@ -109,7 +119,7 @@ const handleClassicQuestions = async (
     if (updatedScore < -50) {
       const newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
       const newTier = TIER_LIST[tierIndex - 1];
-      const response = await User.findOneAndUpdate(
+      response = await User.findOneAndUpdate(
         { _id: uid },
         {
           $set: {
@@ -120,14 +130,18 @@ const handleClassicQuestions = async (
         },
       );
       if (response) {
-        return { status: 200, message: "Score and tier updated successfully" };
-      } else {
-        return { status: 500, error: "Failed to update score and tier" };
+        response = {
+          status: { code: 200, message: "Score and tier updated successfully" },
+          data: {
+            tier: newTier,
+            points: newScore,
+          },
+        };
       }
     } else if (updatedScore >= 100) {
       const newScore = updatedScore - 100;
       const newTier = TIER_LIST[tierIndex + 1];
-      const response = await User.findOneAndUpdate(
+      response = await User.findOneAndUpdate(
         { _id: uid },
         {
           $set: {
@@ -138,12 +152,16 @@ const handleClassicQuestions = async (
         },
       );
       if (response) {
-        return { status: 200, message: "Score and tier updated successfully" };
-      } else {
-        return { status: 500, error: "Failed to update score and tier" };
+        response = {
+          status: { code: 200, message: "Score and tier updated successfully" },
+          data: {
+            tier: newTier,
+            points: newScore,
+          },
+        };
       }
     } else {
-      const response = await User.findOneAndUpdate(
+      response = await User.findOneAndUpdate(
         { _id: uid },
         {
           $set: {
@@ -153,13 +171,18 @@ const handleClassicQuestions = async (
         },
       );
       if (response) {
-        return { status: 200, message: "Score updated successfully" };
-      } else {
-        return { status: 500, error: "Failed to update score and tier" };
+        response = {
+          status: { code: 200, message: "Score and tier updated successfully" },
+          data: {
+            tier: currentTier,
+            points: updatedScore,
+          },
+        };
       }
     }
+    return response;
   } catch (error) {
-    return { status: 500, error: "Failed to update score and tier" };
+    return { status: 500, error: error };
   }
 };
 
@@ -178,8 +201,9 @@ exports.updateTierAndScore = async (req, res) => {
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      if (response.status === 200) {
-        return res.json({ message: "Tier and score updated successfully" });
+      console.log(" 1st response: ", response);
+      if (response.status.code === 200) {
+        return res.status(200).json(response);
       } else {
         return res
           .status(500)
@@ -193,8 +217,9 @@ exports.updateTierAndScore = async (req, res) => {
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      if (response.status === 200) {
-        return res.json({ message: "Tier and score updated successfully" });
+      console.log(" 2nd response: ", response);
+      if (response.status.code === 200) {
+        return res.status(200).json(response);
       } else {
         return res
           .status(500)
@@ -208,7 +233,7 @@ exports.updateTierAndScore = async (req, res) => {
 };
 
 const mapTierToFilter = (tier) => {
-  if ([" ", "I4", "I3", "I2", "I1"].includes(tier)) {
+  if (["I4", "I3", "I2", "I1"].includes(tier)) {
     return IRON_TIER_FILTER;
   } else if (["B4", "B3", "B2", "B1"].includes(tier)) {
     return BRONZE_TIER_FILTER;
