@@ -61,26 +61,27 @@ const TIER_LIST = [
 
 // use a local points system
 // each subtier is 100 points
-// To demote to a lower tier, the user must give wrong answer when having a score below 0
+// To demote to a lower tier, the user must give wrong answer when having a score below 0 (two wrong answers in a row)
 // ex : S4 demote to B1 if score = -10 and user gives wrong answer
 // then put score to 100 - (-actual score) and tier to B1
 
 const handlePlacementQuestions = async (
+  uid,
   currentTier,
   isAnswerCorrect,
   questionsAnsweredNb,
 ) => {
-  // todo : add or remove 400 hundred points and move to bext or prev tier qnd return new score and tier
+  // get the index of the current tier in the tier list and increment or decrement it
   let tierIndex = TIER_LIST.indexOf(currentTier);
   if (isAnswerCorrect) {
-    tierIndex += 1;
+    tierIndex += 4;
   } else {
     if (tierIndex > 0) {
-      tierIndex -= 1;
+      tierIndex -= 4;
     }
   }
   const response = await User.findOneAndUpdate(
-    { _id: req.user._id },
+    { _id: uid },
     {
       $set: {
         tier: TIER_LIST[tierIndex],
@@ -91,53 +92,118 @@ const handlePlacementQuestions = async (
   return response;
 };
 
-const handleClassicQuestions = (currentScore, currentTier, isAnswerCorrect) => {
-  // todo : add or remove 100 points and move to bext or prev tier if needed and return new score and tier
+const handleClassicQuestions = async (
+  uid,
+  currentScore,
+  currentTier,
+  isAnswerCorrect,
+  questionsAnsweredNb,
+) => {
+  console.log("handleClassicQuestions");
+  try {
+    const updatedScore = isAnswerCorrect
+      ? currentScore + 80
+      : currentScore - 50;
+    const tierIndex = TIER_LIST.indexOf(currentTier);
+    // demote after 2 wrong answers in a row
+    if (updatedScore < -50) {
+      const newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
+      const newTier = TIER_LIST[tierIndex - 1];
+      const response = await User.findOneAndUpdate(
+        { _id: uid },
+        {
+          $set: {
+            score: newScore,
+            tier: newTier,
+            questionsAnsweredNb: questionsAnsweredNb + 1,
+          },
+        },
+      );
+      if (response) {
+        return { status: 200, message: "Score and tier updated successfully" };
+      } else {
+        return { status: 500, error: "Failed to update score and tier" };
+      }
+    } else if (updatedScore >= 100) {
+      const newScore = updatedScore - 100;
+      const newTier = TIER_LIST[tierIndex + 1];
+      const response = await User.findOneAndUpdate(
+        { _id: uid },
+        {
+          $set: {
+            score: newScore,
+            tier: newTier,
+            questionsAnsweredNb: questionsAnsweredNb + 1,
+          },
+        },
+      );
+      if (response) {
+        return { status: 200, message: "Score and tier updated successfully" };
+      } else {
+        return { status: 500, error: "Failed to update score and tier" };
+      }
+    } else {
+      const response = await User.findOneAndUpdate(
+        { _id: uid },
+        {
+          $set: {
+            score: updatedScore,
+            questionsAnsweredNb: questionsAnsweredNb + 1,
+          },
+        },
+      );
+      if (response) {
+        return { status: 200, message: "Score updated successfully" };
+      } else {
+        return { status: 500, error: "Failed to update score and tier" };
+      }
+    }
+  } catch (error) {
+    return { status: 500, error: "Failed to update score and tier" };
+  }
 };
 
 exports.updateTierAndScore = async (req, res) => {
   try {
-    console.log("updateTierAndScore");
-    const userID = req.user._id;
-    const datas = req.user; //req.user is like user {
-    //   _id: new ObjectId("66177440832ed652b92c9252"),
-    //   username: 'autre',
-    //   password: '$2a$10$YtR9dLnLoq1XHqAimaso2OOjdPNBraPPKAODXnLdD4K4JeoIyTPx2',
-    //   score: 170,
-    //   tier: ' ',
-    //   questionsAnsweredNb: 0,
-    //   description: '',
-    //   email: '',
-    //   scoreLastUpdate: 2024-04-11T05:25:20.290Z,
-    //   lastVisited: 2024-04-11T05:33:37.129Z,
-    //   refreshTokens: [
-    //     {
-    //       token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImF1dHJlIiwiaWF0IjoxNzEyODEzMTQwLCJleHAiOjE3MjA1ODkxNDB9.l1aWpxwlgmI5WgcPJb6hD4xuJkVKoNyl89h1nd6ngNQ',
-    //       expiresIn: 2024-05-11T05:25:40.862Z,
-    //       _id: new ObjectId("66177440832ed652b92c9253")
-    //     }
-    //   ],
-    //   createdAt: 2024-04-11T05:25:20.304Z,
-    //   updatedAt: 2024-04-11T05:33:37.129Z,
-    //   userNumber: 10000001,
-    //   __v: 0
-    // }
-    //const datas = await User.findOne({ _id: userID }); // tier is already passed as argument so no need to get it from the db -> slow down process ~20ms
-    console.log(datas);
+    const datas = req.user;
     const tier = datas.tier;
     const score = datas.score;
-
-    await User.updateOne(
-      { _id: userID },
-      { $set: { tier: tier, score: score + 10 } },
-    );
-
-    res.json({ message: "Tier and score updated successfully" });
+    const questionsAnsweredNb = datas.questionsAnsweredNb;
+    const isAnswerCorrect = req.body.isAnswerCorrect;
+    const uid = req.user._id;
+    if (questionsAnsweredNb < 5) {
+      const response = await handlePlacementQuestions(
+        uid,
+        tier,
+        isAnswerCorrect,
+        questionsAnsweredNb,
+      );
+      if (response.status === 200) {
+        return res.json({ message: "Tier and score updated successfully" });
+      } else {
+        return res
+          .status(500)
+          .json({ error: "Failed to update tier and score" });
+      }
+    } else {
+      const response = await handleClassicQuestions(
+        uid,
+        score,
+        tier,
+        isAnswerCorrect,
+        questionsAnsweredNb,
+      );
+      if (response.status === 200) {
+        return res.json({ message: "Tier and score updated successfully" });
+      } else {
+        return res
+          .status(500)
+          .json({ error: "Failed to update tier and score" });
+      }
+    }
   } catch (error) {
     console.error("Error updating tier and score:", error);
-    res.status(500).json({ error: "Failed to update tier and score" });
-  } finally {
-    await client.close();
+    return res.status(500).json({ error: "Failed to update tier and score" });
   }
 };
 
@@ -182,7 +248,6 @@ exports.sendQuestionToFrontend = async (req, res) => {
     const userID = req.user._id;
     userInfo = await User.findOne({ _id: userID });
     const currentTier = userInfo.tier;
-    console.log("currentTier", currentTier);
     const filter = mapTierToFilter(currentTier);
     const questions = await UserDb.find(filter);
     if (questions.length === 0) {
@@ -198,7 +263,6 @@ exports.sendQuestionToFrontend = async (req, res) => {
       selectedQuestion,
       currentTier,
     );
-    console.log("multipleChoices", multipleChoices);
     const shuffledMultipleChoices = multipleChoices.sort(
       () => 0.5 - Math.random(),
     );
@@ -233,7 +297,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
 async function getOtherMultipleChoiceAnswers(selectedQuestion, currentTier) {
   let filter;
 
-  if ([" ", "I4", "I3", "I2", "I1"].includes(currentTier)) {
+  if (["I4", "I3", "I2", "I1"].includes(currentTier)) {
     return ["FAKER", "FAKER", "FAKER", "FAKER"];
   } else if (["B4", "B3", "B2", "B1"]) {
     filter = {

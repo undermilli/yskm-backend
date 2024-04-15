@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
     },
     tier: {
       type: String,
-      default: " ",
+      default: "I4",
       maxtength: 2,
     },
     questionsAnsweredNb: {
