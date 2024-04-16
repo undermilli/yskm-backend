@@ -1,8 +1,7 @@
 // 실험중
 const User = require("../models/user.model");
 const UserDb = require("../models/userdb.model");
-const AuthService = require("../services/auth.service");
-
+const httpStatus = require("http-status");
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
 const BRONZE_TIER_FILTER = {
@@ -99,68 +98,29 @@ const handleClassicQuestions = async (
   isAnswerCorrect,
   questionsAnsweredNb,
 ) => {
-  console.log("handleClassicQuestions");
-  try {
-    const updatedScore = isAnswerCorrect
-      ? currentScore + 80
-      : currentScore - 50;
-    const tierIndex = TIER_LIST.indexOf(currentTier);
-    // demote after 2 wrong answers in a row
-    if (updatedScore < -50) {
-      const newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
-      const newTier = TIER_LIST[tierIndex - 1];
-      const response = await User.findOneAndUpdate(
-        { _id: uid },
-        {
-          $set: {
-            score: newScore,
-            tier: newTier,
-            questionsAnsweredNb: questionsAnsweredNb + 1,
-          },
-        },
-      );
-      if (response) {
-        return { status: 200, message: "Score and tier updated successfully" };
-      } else {
-        return { status: 500, error: "Failed to update score and tier" };
-      }
-    } else if (updatedScore >= 100) {
-      const newScore = updatedScore - 100;
-      const newTier = TIER_LIST[tierIndex + 1];
-      const response = await User.findOneAndUpdate(
-        { _id: uid },
-        {
-          $set: {
-            score: newScore,
-            tier: newTier,
-            questionsAnsweredNb: questionsAnsweredNb + 1,
-          },
-        },
-      );
-      if (response) {
-        return { status: 200, message: "Score and tier updated successfully" };
-      } else {
-        return { status: 500, error: "Failed to update score and tier" };
-      }
-    } else {
-      const response = await User.findOneAndUpdate(
-        { _id: uid },
-        {
-          $set: {
-            score: updatedScore,
-            questionsAnsweredNb: questionsAnsweredNb + 1,
-          },
-        },
-      );
-      if (response) {
-        return { status: 200, message: "Score updated successfully" };
-      } else {
-        return { status: 500, error: "Failed to update score and tier" };
-      }
-    }
-  } catch (error) {
-    return { status: 500, error: "Failed to update score and tier" };
+  const updatedScore = isAnswerCorrect ? currentScore + 80 : currentScore - 50;
+  const tierIndex = TIER_LIST.indexOf(currentTier);
+  let newScore = updatedScore;
+  let newTier = currentTier;
+  // demote after 2 wrong answers in a row
+  if (updatedScore < -50) {
+    newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
+    newTier = TIER_LIST[tierIndex - 1];
+  } else if (updatedScore >= 100) {
+    newScore = updatedScore - 100;
+    newTier = TIER_LIST[tierIndex + 1];
   }
+  const response = await User.findOneAndUpdate(
+    { _id: uid },
+    {
+      $set: {
+        score: newScore,
+        tier: newTier,
+        questionsAnsweredNb: questionsAnsweredNb + 1,
+      },
+    },
+  );
+  return response;
 };
 
 exports.updateTierAndScore = async (req, res) => {
@@ -171,44 +131,31 @@ exports.updateTierAndScore = async (req, res) => {
     const questionsAnsweredNb = datas.questionsAnsweredNb;
     const isAnswerCorrect = req.body.isAnswerCorrect;
     const uid = req.user._id;
+    let response;
     if (questionsAnsweredNb < 5) {
-      const response = await handlePlacementQuestions(
+      response = await handlePlacementQuestions(
         uid,
         tier,
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      if (response.status === 200) {
-        return res.json({ message: "Tier and score updated successfully" });
-      } else {
-        return res
-          .status(500)
-          .json({ error: "Failed to update tier and score" });
-      }
     } else {
-      const response = await handleClassicQuestions(
+      response = await handleClassicQuestions(
         uid,
         score,
         tier,
         isAnswerCorrect,
         questionsAnsweredNb,
       );
-      if (response.status === 200) {
-        return res.json({ message: "Tier and score updated successfully" });
-      } else {
-        return res
-          .status(500)
-          .json({ error: "Failed to update tier and score" });
-      }
     }
+    return res.status(httpStatus.OK).json(response);
   } catch (error) {
-    console.error("Error updating tier and score:", error);
-    return res.status(500).json({ error: "Failed to update tier and score" });
+    return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 
 const mapTierToFilter = (tier) => {
-  if ([" ", "I4", "I3", "I2", "I1"].includes(tier)) {
+  if (["I4", "I3", "I2", "I1"].includes(tier)) {
     return IRON_TIER_FILTER;
   } else if (["B4", "B3", "B2", "B1"].includes(tier)) {
     return BRONZE_TIER_FILTER;
@@ -252,7 +199,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
     const questions = await UserDb.find(filter);
     if (questions.length === 0) {
       return res
-        .status(404)
+        .status(httpStatus.NOT_FOUND)
         .json({ error: "No questions found for this tier" });
     }
 
@@ -287,10 +234,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error("Error sending question to frontend:", error);
-    res.status(500).json({ error: "Failed to send question to frontend" });
-  } finally {
-    await client.close();
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
 
