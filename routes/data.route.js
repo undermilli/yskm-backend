@@ -9,9 +9,9 @@ const router = express.Router();
 
 router
   .route("/update-tier-and-score")
-  .post(authMiddleware, tryCatch(DataController.updateTierAndScore));
+  .post(tryCatch(DataController.updateTierAndScore));
 router
   .route("/send-question-to-frontend")
-  .get(authMiddleware, tryCatch(DataController.sendQuestionToFrontend));
+  .get(tryCatch(DataController.sendQuestionToFrontend));
 
 module.exports = router;
