@@ -95,6 +95,7 @@ const handlePlacementQuestions = async (
           questionsAnsweredNb: questionsAnsweredNb + 1,
         },
       },
+      { returnOriginal: false },
     );
   }
 
@@ -128,11 +129,6 @@ const handleClassicQuestions = async (
       questionsAnsweredNb: questionsAnsweredNb + 1,
     };
   } else {
-    console.log({
-      tier: newTier,
-      score: newScore,
-      questionsAnsweredNb: questionsAnsweredNb + 1,
-    });
     response = await User.findOneAndUpdate(
       { _id: uid },
       {
@@ -142,6 +138,7 @@ const handleClassicQuestions = async (
           questionsAnsweredNb: questionsAnsweredNb + 1,
         },
       },
+      { returnOriginal: false },
     );
   }
 
@@ -156,7 +153,6 @@ exports.updateTierAndScore = async (req, res) => {
     const questionsAnsweredNb = user.questionsAnsweredNb;
     const isAnswerCorrect = req.body.isAnswerCorrect;
     const uid = user._id;
-    console.log("nb", questionsAnsweredNb);
     let response;
     if (questionsAnsweredNb < 5) {
       response = await handlePlacementQuestions(
@@ -174,7 +170,6 @@ exports.updateTierAndScore = async (req, res) => {
         questionsAnsweredNb,
       );
     }
-    console.log("response", response);
     return res.status(httpStatus.OK).json(response);
   } catch (error) {
     console.log(error);
