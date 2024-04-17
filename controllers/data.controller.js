@@ -193,9 +193,6 @@ const updateTopTiers = async (currentUser) => {
       }
     }
   });
-  const topUsersUpdated = await User.find({
-    tier: { $in: ["M", "GM", "C"] },
-  }).sort({ score: "desc" });
   return updatedUser;
 };
 
