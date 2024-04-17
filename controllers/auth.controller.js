@@ -24,7 +24,7 @@ exports.signup = async (req, res) => {
     req.body.questionsAnsweredNb,
   );
   const { accessToken, refreshToken } = AuthService.generateTokens(newUser);
-  const response = await AuthService.saveUser(newUser);
+  await AuthService.saveUser(newUser);
   return res.status(statusCodes.CREATED).json({
     code: statusCodes.CREATED,
     message: messages.CREATED,
