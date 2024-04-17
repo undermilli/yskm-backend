@@ -53,10 +53,19 @@ const getHashedPassword = async (password = "") => {
  * @param {string} hashedPassword
  * @returns {User} Get user model new user instance
  */
-const getCreateUser = (username = "", hashedPassword = "") =>
+const getCreateUser = (
+  username = "",
+  hashedPassword = "",
+  score = 0,
+  tier = "I4",
+  questionsAnsweredNb = "0",
+) =>
   new User({
     username,
     password: hashedPassword,
+    score,
+    tier,
+    questionsAnsweredNb,
   });
 
 /**

@@ -24,6 +24,7 @@ exports.info = async (req, res) => {
       createdAt: req.user.createdAt,
       lastVisited: req.user.lastVisited,
       tier: req.user.tier,
+      questionsAnsweredNb: req.user.questionsAnsweredNb,
     },
   });
 };
@@ -111,6 +112,7 @@ exports.updateScore = async (req, res) => {
       createdAt: updatedUser.createdAt,
       lastVisited: updatedUser.lastVisited,
       tier: updatedUser.tier,
+      questionsAnsweredNb: updatedUser.questionsAnsweredNb,
     },
   });
 };
