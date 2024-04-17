@@ -6,18 +6,25 @@ const AuthService = require("../services/auth.service");
 const { authValidator } = require("../validation/auth.validation");
 
 exports.signup = async (req, res) => {
-  const { username, password } = AuthService.checkUsernameAndPassword(req.body);
-
+  const usernameToCheck = req.body.username;
+  const passwordToCheck = req.body.password;
+  const { username, password } = AuthService.checkUsernameAndPassword({
+    username: usernameToCheck,
+    password: passwordToCheck,
+  });
   await AuthService.checkUserExists(username);
 
   const hashedPassword = await AuthService.getHashedPassword(password);
 
-  const newUser = AuthService.getCreateUser(username, hashedPassword);
-
+  const newUser = AuthService.getCreateUser(
+    username,
+    hashedPassword,
+    req.body.score,
+    req.body.tier,
+    req.body.questionsAnsweredNb,
+  );
   const { accessToken, refreshToken } = AuthService.generateTokens(newUser);
-
-  AuthService.saveUser(newUser);
-
+  await AuthService.saveUser(newUser);
   return res.status(statusCodes.CREATED).json({
     code: statusCodes.CREATED,
     message: messages.CREATED,
@@ -27,13 +34,12 @@ exports.signup = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { error } = authValidator.validate(req.body);
-
+  const username = req.body.username;
+  const password = req.body.password;
+  const { error } = authValidator.validate({ username, password });
   if (error) {
     throw error;
   }
-  const { username, password } = req.body;
-
   const user = await User.findOne({ username });
   if (!user) {
     throw new AppError(

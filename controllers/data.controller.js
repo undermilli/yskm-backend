@@ -72,6 +72,7 @@ const handlePlacementQuestions = async (
 ) => {
   // get the index of the current tier in the tier list and increment or decrement it
   let tierIndex = TIER_LIST.indexOf(currentTier);
+  let response;
   if (isAnswerCorrect) {
     tierIndex += 4;
   } else {
@@ -79,15 +80,25 @@ const handlePlacementQuestions = async (
       tierIndex -= 4;
     }
   }
-  const response = await User.findOneAndUpdate(
-    { _id: uid },
-    {
-      $set: {
-        tier: TIER_LIST[tierIndex],
-        questionsAnsweredNb: questionsAnsweredNb + 1,
+  if (uid === undefined) {
+    response = {
+      tier: TIER_LIST[tierIndex],
+      questionsAnsweredNb: questionsAnsweredNb + 1,
+      score: 0,
+    };
+  } else {
+    response = await User.findOneAndUpdate(
+      { _id: uid },
+      {
+        $set: {
+          tier: TIER_LIST[tierIndex],
+          questionsAnsweredNb: questionsAnsweredNb + 1,
+        },
       },
-    },
-  );
+      { returnOriginal: false },
+    );
+  }
+
   return response;
 };
 
@@ -102,6 +113,7 @@ const handleClassicQuestions = async (
   const tierIndex = TIER_LIST.indexOf(currentTier);
   let newScore = updatedScore;
   let newTier = currentTier;
+  let response;
   // demote after 2 wrong answers in a row
   if (updatedScore < -50) {
     newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
@@ -110,27 +122,37 @@ const handleClassicQuestions = async (
     newScore = updatedScore - 100;
     newTier = TIER_LIST[tierIndex + 1];
   }
-  const response = await User.findOneAndUpdate(
-    { _id: uid },
-    {
-      $set: {
-        score: newScore,
-        tier: newTier,
-        questionsAnsweredNb: questionsAnsweredNb + 1,
+  if (uid === undefined) {
+    response = {
+      tier: newTier,
+      score: newScore,
+      questionsAnsweredNb: questionsAnsweredNb + 1,
+    };
+  } else {
+    response = await User.findOneAndUpdate(
+      { _id: uid },
+      {
+        $set: {
+          score: newScore,
+          tier: newTier,
+          questionsAnsweredNb: questionsAnsweredNb + 1,
+        },
       },
-    },
-  );
+      { returnOriginal: false },
+    );
+  }
+
   return response;
 };
 
 exports.updateTierAndScore = async (req, res) => {
   try {
-    const datas = req.user;
-    const tier = datas.tier;
-    const score = datas.score;
-    const questionsAnsweredNb = datas.questionsAnsweredNb;
+    const user = req.user ? req.user : req.body.user;
+    const tier = user.tier;
+    const score = user.score;
+    const questionsAnsweredNb = user.questionsAnsweredNb;
     const isAnswerCorrect = req.body.isAnswerCorrect;
-    const uid = req.user._id;
+    const uid = user._id;
     let response;
     if (questionsAnsweredNb < 5) {
       response = await handlePlacementQuestions(
@@ -150,6 +172,7 @@ exports.updateTierAndScore = async (req, res) => {
     }
     return res.status(httpStatus.OK).json(response);
   } catch (error) {
+    console.log(error);
     return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
@@ -192,9 +215,7 @@ const mapTierToFilter = (tier) => {
 
 exports.sendQuestionToFrontend = async (req, res) => {
   try {
-    const userID = req.user._id;
-    userInfo = await User.findOne({ _id: userID });
-    const currentTier = userInfo.tier;
+    const currentTier = req.query.tier;
     const filter = mapTierToFilter(currentTier);
     const questions = await UserDb.find(filter);
     if (questions.length === 0) {
