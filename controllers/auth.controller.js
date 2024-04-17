@@ -24,8 +24,7 @@ exports.signup = async (req, res) => {
     req.body.questionsAnsweredNb,
   );
   const { accessToken, refreshToken } = AuthService.generateTokens(newUser);
-  AuthService.saveUser(newUser);
-
+  const response = await AuthService.saveUser(newUser);
   return res.status(statusCodes.CREATED).json({
     code: statusCodes.CREATED,
     message: messages.CREATED,
@@ -42,8 +41,6 @@ exports.login = async (req, res) => {
     throw error;
   }
   const user = await User.findOne({ username });
-  console.log("usernqme", username);
-  console.log("user", user);
   if (!user) {
     throw new AppError(
       statusCodes.UNAUTHORIZED,
@@ -53,7 +50,6 @@ exports.login = async (req, res) => {
   }
 
   const isMatch = await user.comparePassword(password);
-  console.log("isMatch", isMatch);
   if (!isMatch) {
     throw new AppError(
       statusCodes.UNAUTHORIZED,
