@@ -102,13 +102,13 @@ const handlePlacementQuestions = async (
   return infosToReturn;
 };
 
-const calculateCorrectAnswerPoints = (currentScore, tier) => {
+const calculateCorrectAnswerPoints = (tier) => {
   if (["M", "GM", "C"].includes(tier)) {
     return 8;
   } else return 80;
 };
 
-const calculateWrongAnswerPoints = (currentScore, tier) => {
+const calculateWrongAnswerPoints = (tier) => {
   if (["M", "GM", "C"].includes(tier)) {
     return -5;
   } else return -50;
@@ -122,8 +122,8 @@ const handleClassicQuestions = async (
   questionsAnsweredNb,
 ) => {
   const lps = isAnswerCorrect
-    ? calculateCorrectAnswerPoints(currentScore, currentTier)
-    : calculateWrongAnswerPoints(currentScore, currentTier);
+    ? calculateCorrectAnswerPoints(currentTier)
+    : calculateWrongAnswerPoints(currentTier);
   const updatedScore = currentScore + lps;
   const tierIndex = TIER_LIST.indexOf(currentTier);
   let newScore = updatedScore;
@@ -132,7 +132,12 @@ const handleClassicQuestions = async (
   // demote after 2 wrong answers in a row
   if (updatedScore < -50) {
     newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
-    newTier = TIER_LIST[tierIndex - 1];
+    // to avoid ranking issues when few users and user should be demoted to D1 when ranked M and above
+    if (tierIndex > TIER_LIST.length - 3) {
+      newTier = "D1";
+    } else {
+      newTier = TIER_LIST[tierIndex - 1];
+    }
   }
   // update score and tier if user has enough points and is not master or above
   else if (updatedScore >= 100 && tierIndex < TIER_LIST.length - 3) {
@@ -152,8 +157,9 @@ const handleClassicQuestions = async (
         questionsAnsweredNb: questionsAnsweredNb + 1,
       },
     },
+    { returnOriginal: false },
   );
-  if (["M", "GM", "C"].includes(newTier)) {
+  if (["M", "GM", "C"].includes(newTier) && newScore > 0) {
     response = await updateTopTiers(response);
   }
   const infosToReturn = { user: response, lps: Math.abs(lps) };
@@ -165,36 +171,36 @@ const updateTopTiers = async (currentUser) => {
     score: "desc",
   });
   let updatedUser = currentUser;
-  topUsers.forEach(async (user, index) => {
-    let updatedTier = user.tier;
+  for (let i = 0; i < topUsers.length; i++) {
+    let updatedTier = topUsers[i].tier;
     let userHasToUpdate = false;
-    if (index < 3) {
-      if (user.tier !== "C") {
+    if (i < 3) {
+      if (topUsers[i].tier !== "C") {
         updatedTier = "C";
         userHasToUpdate = true;
       }
-    } else if (index < 30) {
-      if (user.tier !== "GM") {
+    } else if (i < 30) {
+      if (topUsers[i].tier !== "GM") {
         updatedTier = "GM";
         userHasToUpdate = true;
       }
     } else {
-      if (user.tier !== "M") {
+      if (topUsers[i].tier !== "M") {
         updatedTier = "M";
         userHasToUpdate = true;
       }
     }
     if (userHasToUpdate) {
       const response = await User.findOneAndUpdate(
-        { _id: user._id },
+        { _id: topUsers[i]._id },
         { $set: { tier: updatedTier } },
         { returnOriginal: false },
       );
-      if (response._id === currentUser._id) {
+      if (response.username === currentUser.username) {
         updatedUser = response;
       }
     }
-  });
+  }
   return updatedUser;
 };
 
@@ -206,6 +212,7 @@ exports.updateTierAndScore = async (req, res) => {
     const questionsAnsweredNb = user.questionsAnsweredNb;
     const isAnswerCorrect = req.body.isAnswerCorrect;
     const uid = user._id;
+    console.log("user", user);
     let response;
     if (questionsAnsweredNb < 5) {
       response = await handlePlacementQuestions(
