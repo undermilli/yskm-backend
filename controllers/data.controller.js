@@ -2,6 +2,7 @@
 const User = require("../models/user.model");
 const UserDb = require("../models/userdb.model");
 const httpStatus = require("http-status");
+const { getCurrentKST } = require("../utils/helpers");
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
 const BRONZE_TIER_FILTER = {
@@ -102,6 +103,18 @@ const handlePlacementQuestions = async (
   return response;
 };
 
+const calculateCorrectAnswerPoints = (currentScore, tier) => {
+  if (["M", "GM", "C"].includes(tier)) {
+    return currentScore + 8;
+  } else return currentScore + 80;
+};
+
+const calculateWrongAnswerPoints = (currentScore, tier) => {
+  if (["M", "GM", "C"].includes(tier)) {
+    return currentScore - 5;
+  } else return currentScore - 50;
+};
+
 const handleClassicQuestions = async (
   uid,
   currentScore,
@@ -109,7 +122,9 @@ const handleClassicQuestions = async (
   isAnswerCorrect,
   questionsAnsweredNb,
 ) => {
-  const updatedScore = isAnswerCorrect ? currentScore + 80 : currentScore - 50;
+  const updatedScore = isAnswerCorrect
+    ? calculateCorrectAnswerPoints(currentScore, currentTier)
+    : calculateWrongAnswerPoints(currentScore, currentTier);
   const tierIndex = TIER_LIST.indexOf(currentTier);
   let newScore = updatedScore;
   let newTier = currentTier;
@@ -118,31 +133,69 @@ const handleClassicQuestions = async (
   if (updatedScore < -50) {
     newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
     newTier = TIER_LIST[tierIndex - 1];
-  } else if (updatedScore >= 100) {
+  }
+  // update score and tier if user has enough points and is not master or above
+  else if (updatedScore >= 100 && tierIndex < TIER_LIST.length - 3) {
     newScore = updatedScore - 100;
     newTier = TIER_LIST[tierIndex + 1];
   }
-  if (uid === undefined) {
-    response = {
-      tier: newTier,
-      score: newScore,
-      questionsAnsweredNb: questionsAnsweredNb + 1,
-    };
-  } else {
-    response = await User.findOneAndUpdate(
-      { _id: uid },
-      {
-        $set: {
-          score: newScore,
-          tier: newTier,
-          questionsAnsweredNb: questionsAnsweredNb + 1,
-        },
-      },
-      { returnOriginal: false },
-    );
-  }
 
+  response = await User.findOneAndUpdate(
+    { _id: uid },
+    {
+      $set: {
+        score: newScore,
+        tier: newTier,
+        questionsAnsweredNb: questionsAnsweredNb + 1,
+      },
+    },
+  );
+  if (["M", "GM", "C"].includes(newTier)) {
+    response = await updateTopTiers(response);
+  }
   return response;
+};
+
+const updateTopTiers = async (currentUser) => {
+  const topUsers = await User.find({ tier: { $in: ["M", "GM", "C"] } }).sort({
+    score: "desc",
+  });
+  let updatedUser = currentUser;
+  topUsers.forEach(async (user, index) => {
+    let updatedTier = user.tier;
+    let userHasToUpdate = false;
+    if (index < 3) {
+      if (user.tier !== "C") {
+        updatedTier = "C";
+        userHasToUpdate = true;
+      }
+    } else if (index < 30) {
+      if (user.tier !== "GM") {
+        updatedTier = "GM";
+        userHasToUpdate = true;
+      }
+    } else {
+      if (user.tier !== "M") {
+        updatedTier = "M";
+        userHasToUpdate = true;
+      }
+    }
+    if (userHasToUpdate) {
+      const response = await User.findOneAndUpdate(
+        { _id: user._id },
+        { $set: { tier: updatedTier } },
+        { returnOriginal: false },
+      );
+      if (response._id === currentUser._id) {
+        updatedUser = response;
+      }
+    }
+  });
+  const topUsersUpdated = await User.find({
+    tier: { $in: ["M", "GM", "C"] },
+  }).sort({ score: "desc" });
+  console.log("topUsersUpdated : ", topUsersUpdated);
+  return updatedUser;
 };
 
 exports.updateTierAndScore = async (req, res) => {
