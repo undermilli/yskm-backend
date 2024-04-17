@@ -2,7 +2,6 @@
 const User = require("../models/user.model");
 const UserDb = require("../models/userdb.model");
 const httpStatus = require("http-status");
-const { getCurrentKST } = require("../utils/helpers");
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
 const BRONZE_TIER_FILTER = {
@@ -138,6 +137,9 @@ const handleClassicQuestions = async (
   else if (updatedScore >= 100 && tierIndex < TIER_LIST.length - 3) {
     newScore = updatedScore - 100;
     newTier = TIER_LIST[tierIndex + 1];
+    if (newTier === "M") {
+      newScore = 0;
+    }
   }
 
   response = await User.findOneAndUpdate(
@@ -194,7 +196,6 @@ const updateTopTiers = async (currentUser) => {
   const topUsersUpdated = await User.find({
     tier: { $in: ["M", "GM", "C"] },
   }).sort({ score: "desc" });
-  console.log("topUsersUpdated : ", topUsersUpdated);
   return updatedUser;
 };
 
