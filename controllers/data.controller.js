@@ -98,20 +98,20 @@ const handlePlacementQuestions = async (
       { returnOriginal: false },
     );
   }
-
-  return response;
+  const infosToReturn = { user: response, lps: 100 };
+  return infosToReturn;
 };
 
 const calculateCorrectAnswerPoints = (currentScore, tier) => {
   if (["M", "GM", "C"].includes(tier)) {
-    return currentScore + 8;
-  } else return currentScore + 80;
+    return 8;
+  } else return 80;
 };
 
 const calculateWrongAnswerPoints = (currentScore, tier) => {
   if (["M", "GM", "C"].includes(tier)) {
-    return currentScore - 5;
-  } else return currentScore - 50;
+    return -5;
+  } else return -50;
 };
 
 const handleClassicQuestions = async (
@@ -121,9 +121,10 @@ const handleClassicQuestions = async (
   isAnswerCorrect,
   questionsAnsweredNb,
 ) => {
-  const updatedScore = isAnswerCorrect
+  const lps = isAnswerCorrect
     ? calculateCorrectAnswerPoints(currentScore, currentTier)
     : calculateWrongAnswerPoints(currentScore, currentTier);
+  const updatedScore = currentScore + lps;
   const tierIndex = TIER_LIST.indexOf(currentTier);
   let newScore = updatedScore;
   let newTier = currentTier;
@@ -155,7 +156,8 @@ const handleClassicQuestions = async (
   if (["M", "GM", "C"].includes(newTier)) {
     response = await updateTopTiers(response);
   }
-  return response;
+  const infosToReturn = { user: response, lps: Math.abs(lps) };
+  return infosToReturn;
 };
 
 const updateTopTiers = async (currentUser) => {
