@@ -310,3 +310,26 @@ async function getOtherMultipleChoiceAnswers(selectedQuestion, currentTier) {
 
   return [selectedQuestion.IGN, ...selectedIGNs];
 }
+
+exports.getUserRanking = async (req, res) => {
+  try {
+    const users = await User.find();
+    const sortedUsers = users.sort((a, b) => {
+      if (a.tier === b.tier) {
+        return b.score - a.score;
+      }
+      return TIER_LIST.indexOf(b.tier) - TIER_LIST.indexOf(a.tier);
+    });
+    const pageSize = Math.ceil(sortedUsers.length / 10);
+    const currentPage = req.params.page;
+    const start = (currentPage - 1) * 10;
+    const data = {
+      users: sortedUsers.slice(start, start + 10),
+      pageSize: pageSize,
+      currentPage: currentPage,
+    };
+    return res.status(httpStatus.OK).json(data);
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
+  }
+};
