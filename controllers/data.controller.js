@@ -212,7 +212,6 @@ exports.updateTierAndScore = async (req, res) => {
     const questionsAnsweredNb = user.questionsAnsweredNb;
     const isAnswerCorrect = req.body.isAnswerCorrect;
     const uid = user._id;
-    console.log("user", user);
     let response;
     if (questionsAnsweredNb < 5) {
       response = await handlePlacementQuestions(
