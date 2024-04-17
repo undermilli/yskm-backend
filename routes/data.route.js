@@ -13,5 +13,7 @@ router
 router
   .route("/send-question-to-frontend")
   .get(authMiddleware, tryCatch(DataController.sendQuestionToFrontend));
-
+router
+  .route("/get-user-ranking/:page")
+  .get(tryCatch(DataController.getUserRanking));
 module.exports = router;
