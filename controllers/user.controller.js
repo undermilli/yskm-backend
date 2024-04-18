@@ -1,5 +1,6 @@
 const { statusCodes } = require("../constants/codes");
 const { messages } = require("../constants/messages");
+const User = require("../models/user.model");
 const AuthService = require("../services/auth.service");
 const UserService = require("../services/user.service");
 const AppError = require("../utils/app-error.util");
@@ -8,6 +9,40 @@ const {
   getCurrentKST,
   getStartDayOfKST,
 } = require("../utils/helpers");
+
+const TIER_LIST = [
+  "I4",
+  "I3",
+  "I2",
+  "I1",
+  "B4",
+  "B3",
+  "B2",
+  "B1",
+  "S4",
+  "S3",
+  "S2",
+  "S1",
+  "G4",
+  "G3",
+  "G2",
+  "G1",
+  "P4",
+  "P3",
+  "P2",
+  "P1",
+  "E4",
+  "E3",
+  "E2",
+  "E1",
+  "D4",
+  "D3",
+  "D2",
+  "D1",
+  "M",
+  "GM",
+  "C",
+];
 
 exports.info = async (req, res) => {
   res.status(statusCodes.SUCCESS).json({
@@ -115,4 +150,25 @@ exports.updateScore = async (req, res) => {
       questionsAnsweredNb: updatedUser.questionsAnsweredNb,
     },
   });
+};
+
+exports.getUserPercentagePosition = async (req, res) => {
+  try {
+    const { username } = req.user;
+    const users = await User.find();
+    const sortedUsers = users.sort((a, b) => {
+      if (a.tier === b.tier) {
+        return b.score - a.score;
+      }
+      return TIER_LIST.indexOf(b.tier) - TIER_LIST.indexOf(a.tier);
+    });
+    const userIndex = sortedUsers.findIndex(
+      (user) => user.username === username,
+    );
+    const userPercentagePosition = ((userIndex + 1) / sortedUsers.length) * 100;
+    return res.status(statusCodes.SUCCESS).json({ userPercentagePosition });
+  } catch (error) {
+    console.log(error);
+    return res.status(statusCodes.ERROR).json({ error });
+  }
 };
