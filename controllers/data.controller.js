@@ -147,18 +147,25 @@ const handleClassicQuestions = async (
       newScore = 0;
     }
   }
-
-  response = await User.findOneAndUpdate(
-    { _id: uid },
-    {
-      $set: {
-        score: newScore,
-        tier: newTier,
-        questionsAnsweredNb: questionsAnsweredNb + 1,
+  if (uid === undefined) {
+    response = {
+      tier: newTier,
+      questionsAnsweredNb: questionsAnsweredNb + 1,
+      score: newScore,
+    };
+  } else {
+    response = await User.findOneAndUpdate(
+      { _id: uid },
+      {
+        $set: {
+          score: newScore,
+          tier: newTier,
+          questionsAnsweredNb: questionsAnsweredNb + 1,
+        },
       },
-    },
-    { returnOriginal: false },
-  );
+      { returnOriginal: false },
+    );
+  }
   if (["M", "GM", "C"].includes(newTier) && newScore > 0) {
     response = await updateTopTiers(response);
   }
@@ -323,7 +330,7 @@ async function getOtherMultipleChoiceAnswers(selectedQuestion, currentTier) {
 
   if (["I4", "I3", "I2", "I1"].includes(currentTier)) {
     return ["FAKER", "FAKER", "FAKER", "FAKER"];
-  } else if (["B4", "B3", "B2", "B1"]) {
+  } else if (["B4", "B3", "B2", "B1"].includes(currentTier)) {
     filter = {
       $or: [
         {
@@ -336,23 +343,15 @@ async function getOtherMultipleChoiceAnswers(selectedQuestion, currentTier) {
     };
   } else if (["S4", "S3", "S2", "S1"].includes(currentTier)) {
     filter = {
-      $or: [
-        {
-          YEAR: selectedQuestion.YEAR,
-          IGN: { $ne: selectedQuestion.IGN },
-          LEAGUE: "LCK",
-        },
-      ],
+      YEAR: selectedQuestion.YEAR,
+      IGN: { $ne: selectedQuestion.IGN },
+      LEAGUE: "LCK",
     };
   } else if (["G4", "G3", "G2", "G1"].includes(currentTier)) {
     filter = {
-      $or: [
-        {
-          YEAR: selectedQuestion.YEAR,
-          IGN: { $ne: selectedQuestion.IGN },
-          LEAGUE: { $in: ["LCK", "LPL", "LEC", "LCS"] },
-        },
-      ],
+      YEAR: selectedQuestion.YEAR,
+      IGN: { $ne: selectedQuestion.IGN },
+      LEAGUE: { $in: ["LCK", "LPL", "LEC", "LCS"] },
     };
   } else if (
     [
