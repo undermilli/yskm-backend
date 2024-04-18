@@ -2,6 +2,7 @@
 const User = require("../models/user.model");
 const UserDb = require("../models/userdb.model");
 const httpStatus = require("http-status");
+const { TIER_LIST } = require("../constants/tierList");
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
 const BRONZE_TIER_FILTER = {
@@ -23,40 +24,6 @@ const GRANDMASTER_FILTER = {
   YEAR: { $in: [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] },
   LEAGUE: { $in: ["LCK", "LPL", "LEC", "LCS"] },
 };
-
-const TIER_LIST = [
-  "I4",
-  "I3",
-  "I2",
-  "I1",
-  "B4",
-  "B3",
-  "B2",
-  "B1",
-  "S4",
-  "S3",
-  "S2",
-  "S1",
-  "G4",
-  "G3",
-  "G2",
-  "G1",
-  "P4",
-  "P3",
-  "P2",
-  "P1",
-  "E4",
-  "E3",
-  "E2",
-  "E1",
-  "D4",
-  "D3",
-  "D2",
-  "D1",
-  "M",
-  "GM",
-  "C",
-];
 
 // use a local points system
 // each subtier is 100 points

@@ -17,5 +17,8 @@ router
 router
   .route("/update-score")
   .get(authMiddleware, tryCatch(UserController.updateScore));
+router
+  .route("/get-user-percentage")
+  .get(authMiddleware, tryCatch(UserController.getUserPercentagePosition));
 
 module.exports = router;

@@ -1,5 +1,8 @@
 const { statusCodes } = require("../constants/codes");
 const { messages } = require("../constants/messages");
+const User = require("../models/user.model");
+const { TIER_LIST } = require("../constants/tierList");
+
 const AuthService = require("../services/auth.service");
 const UserService = require("../services/user.service");
 const AppError = require("../utils/app-error.util");
@@ -115,4 +118,25 @@ exports.updateScore = async (req, res) => {
       questionsAnsweredNb: updatedUser.questionsAnsweredNb,
     },
   });
+};
+
+exports.getUserPercentagePosition = async (req, res) => {
+  try {
+    const { username } = req.user;
+    const users = await User.find();
+    const sortedUsers = users.sort((a, b) => {
+      if (a.tier === b.tier) {
+        return b.score - a.score;
+      }
+      return TIER_LIST.indexOf(b.tier) - TIER_LIST.indexOf(a.tier);
+    });
+    const userIndex = sortedUsers.findIndex(
+      (user) => user.username === username,
+    );
+    const userPercentagePosition = ((userIndex + 1) / sortedUsers.length) * 100;
+    return res.status(statusCodes.SUCCESS).json({ userPercentagePosition });
+  } catch (error) {
+    console.log(error);
+    return res.status(statusCodes.ERROR).json({ error });
+  }
 };
