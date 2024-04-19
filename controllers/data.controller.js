@@ -256,14 +256,21 @@ exports.sendQuestionToFrontend = async (req, res) => {
         .status(httpStatus.NOT_FOUND)
         .json({ error: "No questions found for this tier" });
     }
+    let multipleChoices = [];
+    let tries = 0;
+    let selectedQuestion;
+    // tries to avoid infinite loops
+    while (multipleChoices.length < 4 && tries < 5) {
+      selectedQuestion =
+        questions[Math.floor(Math.random() * questions.length)];
 
-    const selectedQuestion =
-      questions[Math.floor(Math.random() * questions.length)];
+      multipleChoices = await getOtherMultipleChoiceAnswers(
+        selectedQuestion,
+        currentTier,
+      );
+      tries += 1;
+    }
 
-    const multipleChoices = await getOtherMultipleChoiceAnswers(
-      selectedQuestion,
-      currentTier,
-    );
     const shuffledMultipleChoices = multipleChoices.sort(
       () => 0.5 - Math.random(),
     );
@@ -288,6 +295,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
 
     res.json(response);
   } catch (error) {
+    console.log(error);
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
