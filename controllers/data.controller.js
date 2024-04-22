@@ -3,6 +3,8 @@ const User = require("../models/user.model");
 const UserDb = require("../models/userdb.model");
 const httpStatus = require("http-status");
 const { TIER_LIST } = require("../constants/tierList");
+const { statusCodes } = require("../constants/codes");
+const { messages } = require("../constants/messages");
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
 const BRONZE_TIER_FILTER = {
@@ -256,14 +258,28 @@ exports.sendQuestionToFrontend = async (req, res) => {
         .status(httpStatus.NOT_FOUND)
         .json({ error: "No questions found for this tier" });
     }
+    let multipleChoices = [];
+    let tries = 0;
+    let selectedQuestion;
+    // tries to avoid infinite loops
+    while (multipleChoices.length < 4 && tries < 5) {
+      selectedQuestion =
+        questions[Math.floor(Math.random() * questions.length)];
 
-    const selectedQuestion =
-      questions[Math.floor(Math.random() * questions.length)];
+      multipleChoices = await getOtherMultipleChoiceAnswers(
+        selectedQuestion,
+        currentTier,
+      );
+      tries += 1;
+    }
+    if (multipleChoices.length < 4) {
+      throw new AppError(
+        statusCodes.ERROR,
+        messages.NOT_FOUND,
+        statusCodes.ERROR,
+      );
+    }
 
-    const multipleChoices = await getOtherMultipleChoiceAnswers(
-      selectedQuestion,
-      currentTier,
-    );
     const shuffledMultipleChoices = multipleChoices.sort(
       () => 0.5 - Math.random(),
     );
@@ -288,6 +304,7 @@ exports.sendQuestionToFrontend = async (req, res) => {
 
     res.json(response);
   } catch (error) {
+    console.log(error);
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
@@ -359,6 +376,7 @@ async function getOtherMultipleChoiceAnswers(selectedQuestion, currentTier) {
 
 exports.getUserRanking = async (req, res) => {
   try {
+    // get user from db with user ID then if user found check if he is in the page, if not, include him
     const users = await User.find();
     const sortedUsers = users.sort((a, b) => {
       if (a.tier === b.tier) {
@@ -374,6 +392,7 @@ exports.getUserRanking = async (req, res) => {
       pageSize: pageSize,
       currentPage: currentPage,
     };
+    console.log(data.includes(user));
     return res.status(httpStatus.OK).json(data);
   } catch (error) {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
