@@ -273,13 +273,11 @@ exports.sendQuestionToFrontend = async (req, res) => {
       tries += 1;
     }
     if (multipleChoices.length < 4) {
-      statusCodes.ERROR, messages.NOT_FOUND, statusCodes.ERROR;
-    }
-
-    if (multipleChoices.length < 4) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json({ error: "No questions found for this tier" });
+      throw new AppError(
+        statusCodes.ERROR,
+        messages.NOT_FOUND,
+        statusCodes.ERROR,
+      );
     }
 
     const shuffledMultipleChoices = multipleChoices.sort(
@@ -378,6 +376,7 @@ async function getOtherMultipleChoiceAnswers(selectedQuestion, currentTier) {
 
 exports.getUserRanking = async (req, res) => {
   try {
+    // get user from db with user ID then if user found check if he is in the page, if not, include him
     const users = await User.find();
     const sortedUsers = users.sort((a, b) => {
       if (a.tier === b.tier) {
@@ -393,6 +392,7 @@ exports.getUserRanking = async (req, res) => {
       pageSize: pageSize,
       currentPage: currentPage,
     };
+    console.log(data.includes(user));
     return res.status(httpStatus.OK).json(data);
   } catch (error) {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
