@@ -3,6 +3,8 @@ const User = require("../models/user.model");
 const UserDb = require("../models/userdb.model");
 const httpStatus = require("http-status");
 const { TIER_LIST } = require("../constants/tierList");
+const { statusCodes } = require("../constants/codes");
+const { messages } = require("../constants/messages");
 // Filters to get the player to find depending on the tier
 const IRON_TIER_FILTER = { IGN: "FAKER" };
 const BRONZE_TIER_FILTER = {
@@ -269,6 +271,15 @@ exports.sendQuestionToFrontend = async (req, res) => {
         currentTier,
       );
       tries += 1;
+    }
+    if (multipleChoices.length < 4) {
+      statusCodes.ERROR, messages.NOT_FOUND, statusCodes.ERROR;
+    }
+
+    if (multipleChoices.length < 4) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "No questions found for this tier" });
     }
 
     const shuffledMultipleChoices = multipleChoices.sort(
