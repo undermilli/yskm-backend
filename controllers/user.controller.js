@@ -133,7 +133,9 @@ exports.getUserPercentagePosition = async (req, res) => {
     const userIndex = sortedUsers.findIndex(
       (user) => user.username === username,
     );
-    const userPercentagePosition = ((userIndex + 1) / sortedUsers.length) * 100;
+    const userPercentagePosition = Math.ceil(
+      ((userIndex + 1) / sortedUsers.length) * 100,
+    );
     return res.status(statusCodes.SUCCESS).json({ userPercentagePosition });
   } catch (error) {
     console.log(error);
