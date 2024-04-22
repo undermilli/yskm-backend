@@ -378,6 +378,8 @@ exports.getUserRanking = async (req, res) => {
   try {
     // get user from db with user ID then if user found check if he is in the page, if not, include him
     const users = await User.find();
+    const currentUsername = req.query.username;
+    const user = users.find((user) => user.username === currentUsername);
     const sortedUsers = users.sort((a, b) => {
       if (a.tier === b.tier) {
         return b.score - a.score;
@@ -387,14 +389,28 @@ exports.getUserRanking = async (req, res) => {
     const pageSize = Math.ceil(sortedUsers.length / 10);
     const currentPage = req.params.page;
     const start = (currentPage - 1) * 10;
+    const slicedUsers = sortedUsers.slice(start, start + 10);
+    if (!slicedUsers.includes(user) && currentUsername !== "") {
+      slicedUsers.pop();
+      slicedUsers.push(user);
+    }
+    const formatedUsers = [];
+    slicedUsers.forEach((user) => {
+      formatedUsers.push({
+        rank: users.indexOf(user) + 1,
+        username: user.username,
+        score: user.score,
+        tier: user.tier,
+      });
+    });
     const data = {
-      users: sortedUsers.slice(start, start + 10),
+      users: formatedUsers,
       pageSize: pageSize,
       currentPage: currentPage,
     };
-    console.log(data.includes(user));
     return res.status(httpStatus.OK).json(data);
   } catch (error) {
+    console.log(error);
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
   }
 };
