@@ -109,11 +109,9 @@ const handleClassicQuestions = async (
         newTier = TIER_LIST[tierIndex - 1];
       }
     }
-  } else {
-    if (updatedScore < 0) {
-      newScore = 100 + updatedScore;
-      newTier = TIER_LIST[tierIndex - 1];
-    }
+  } else if (updatedScore < 0) {
+    newScore = 100 + updatedScore;
+    newTier = TIER_LIST[tierIndex - 1];
   }
   // handle rankup update score and tier if user has enough points and is not master or above
   if (updatedScore >= 100 && tierIndex < TIER_LIST.length - 3) {
