@@ -98,18 +98,25 @@ const handleClassicQuestions = async (
   let newScore = updatedScore;
   let newTier = currentTier;
   let response;
-  // demote after 2 wrong answers in a row
-  if (updatedScore < -50) {
-    newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
-    // to avoid ranking issues when few users and user should be demoted to D1 when ranked M and above
-    if (tierIndex > TIER_LIST.length - 3) {
-      newTier = "D1";
-    } else {
+  // handle demotion
+  if (tierIndex % 4 === 0) {
+    if (updatedScore < -50) {
+      newScore = 100 + updatedScore; // score is negative so we add it to 100 (ex : 100 + (-50) = 50)
+      // to avoid ranking issues when few users and user should be demoted to D1 when ranked M and above
+      if (tierIndex > TIER_LIST.length - 3) {
+        newTier = "D1";
+      } else {
+        newTier = TIER_LIST[tierIndex - 1];
+      }
+    }
+  } else {
+    if (updatedScore < 0) {
+      newScore = 100 + updatedScore;
       newTier = TIER_LIST[tierIndex - 1];
     }
   }
-  // update score and tier if user has enough points and is not master or above
-  else if (updatedScore >= 100 && tierIndex < TIER_LIST.length - 3) {
+  // handle rankup update score and tier if user has enough points and is not master or above
+  if (updatedScore >= 100 && tierIndex < TIER_LIST.length - 3) {
     newScore = updatedScore - 100;
     newTier = TIER_LIST[tierIndex + 1];
     if (newTier === "M") {
