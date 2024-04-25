@@ -1,74 +1,132 @@
+const httpStatus = require("http-status");
+
 const User = require("../models/user.model");
 const AppError = require("../utils/app-error.util");
-const { statusCodes } = require("../constants/codes");
 const { messages } = require("../constants/messages");
 const AuthService = require("../services/auth.service");
-const { authValidator } = require("../validation/auth.validation");
+const { ENV } = require("../configs/env.config");
+const { generateTokenByEmail } = require("../utils/helpers");
+
+exports.checkEmail = async (req, res) => {
+  const { email } = AuthService.getEmailAfterValidation(req.body);
+  await AuthService.checkUserEmailExists(email);
+
+  res.status(httpStatus.OK).json({
+    message: httpStatus[httpStatus.OK],
+  });
+};
+
+exports.sendOTP = async (req, res) => {
+  const { email } = AuthService.getEmailAfterValidation(req.body);
+  await AuthService.checkUserEmailExists(email);
+  await AuthService.checkUserEmailExistsInOTP(email);
+  const otp = await AuthService.getNewOTP();
+  await AuthService.saveNewOTPwithEmail(email, otp);
+
+  res.status(httpStatus.OK).json({
+    message: messages.OTP_SENT,
+    data: {
+      expireInMins: Number(ENV.OTP_EXPIRE_IN_MINS),
+    },
+  });
+};
+
+exports.checkOTP = async (req, res) => {
+  const { email, otp } = AuthService.getEmailAndOTPAfterValidation(req.body);
+  await AuthService.checkOTPandEmailExists(email, otp);
+  await AuthService.findEmailAndOTPtoDelete(email, otp);
+
+  res.status(httpStatus.OK).json({
+    message: httpStatus[httpStatus.OK],
+    data: {
+      signUpToken: generateTokenByEmail(email),
+    },
+  });
+};
 
 exports.signup = async (req, res) => {
-  const usernameToCheck = req.body.username;
-  const passwordToCheck = req.body.password;
-  const { username, password } = AuthService.checkUsernameAndPassword({
-    username: usernameToCheck,
-    password: passwordToCheck,
-  });
-  await AuthService.checkUserExists(username);
-
-  const hashedPassword = await AuthService.getHashedPassword(password);
-
-  const newUser = AuthService.getCreateUser(
-    username,
-    hashedPassword,
-    req.body.score,
-    req.body.tier,
-    req.body.questionsAnsweredNb,
+  const { signUpToken, nickname, password } = AuthService.checkUserSignupInfo(
+    req.body,
   );
+  const { email } = AuthService.checkTokenExpired(signUpToken);
+  await AuthService.checkUserEmailExists(email);
+  const hashedPassword = await AuthService.getHashedPassword(password);
+  const newUser = AuthService.getCreateUser(email, nickname, hashedPassword);
   const { accessToken, refreshToken } = AuthService.generateTokens(newUser);
-  await AuthService.saveUser(newUser);
-  return res.status(statusCodes.CREATED).json({
-    code: statusCodes.CREATED,
-    message: messages.CREATED,
-    accessToken,
-    refreshToken,
+  AuthService.saveUser(newUser);
+
+  return res.status(httpStatus.CREATED).json({
+    message: httpStatus[httpStatus.CREATED],
+    data: { accessToken, refreshToken },
   });
 };
 
 exports.login = async (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
-  const { error } = authValidator.validate({ username, password });
-  if (error) {
-    throw error;
-  }
-  const user = await User.findOne({ username });
-  if (!user) {
-    throw new AppError(
-      statusCodes.UNAUTHORIZED,
-      messages.INVALID_USERNAME,
-      statusCodes.UNAUTHORIZED,
-    );
-  }
+  const { email, password } = AuthService.getEmailAndPasswordAfterValidation(
+    req.body,
+  );
+  const user = await AuthService.getUserByEmail(email);
 
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    throw new AppError(
-      statusCodes.UNAUTHORIZED,
-      messages.INVALID_PASSWORD,
-      statusCodes.UNAUTHORIZED,
-    );
-  }
+  await AuthService.checkPasswordMatched(user, password);
 
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
   user.lastVisited = Date.now();
-  await user.save();
-
-  return res.status(statusCodes.SUCCESS).json({
-    code: statusCodes.SUCCESS,
+  AuthService.saveUser(user);
+  return res.status(httpStatus.OK).json({
     message: messages.LOGIN,
-    accessToken,
-    refreshToken,
+    data: { accessToken, refreshToken },
+  });
+};
+
+exports.checkForgotEmailValid = async (req, res) => {
+  const { email } = AuthService.getEmailAfterValidation(req.body);
+  await AuthService.isUserEmailExists(email);
+
+  res.status(httpStatus.OK).json({
+    message: httpStatus[httpStatus.OK],
+  });
+};
+
+exports.sendOTPforForgot = async (req, res) => {
+  const { email } = AuthService.getEmailAfterValidation(req.body);
+  await AuthService.isUserEmailExists(email);
+  await AuthService.checkUserEmailExistsInOTP(email);
+  const otp = await AuthService.getNewOTP();
+  await AuthService.saveNewOTPwithEmail(email, otp);
+
+  res.status(httpStatus.OK).json({
+    message: messages.OTP_SENT,
+    data: {
+      expireInMins: Number(ENV.OTP_EXPIRE_IN_MINS),
+    },
+  });
+};
+
+exports.checkForgotOTP = async (req, res) => {
+  const { email, otp } = AuthService.getEmailAndOTPAfterValidation(req.body);
+  await AuthService.checkOTPandEmailExists(email, otp);
+  await AuthService.findEmailAndOTPtoDelete(email, otp);
+
+  res.status(httpStatus.OK).json({
+    message: httpStatus[httpStatus.OK],
+    data: {
+      forgotToken: generateTokenByEmail(email),
+    },
+  });
+};
+
+exports.newPassword = async (req, res) => {
+  const { forgotToken, password } =
+    AuthService.getForgotTokenAndPasswordAfterValidation(req.body);
+  const { email } = AuthService.checkTokenExpired(forgotToken);
+  await AuthService.isUserEmailExists(email);
+  const hashedPassword = await AuthService.getHashedPassword(password);
+  await AuthService.updatePasswordByEmail(email, hashedPassword);
+
+  res.status(httpStatus.OK).json({
+    message: messages.PASSWORD_UPDATED,
   });
 };
 
@@ -76,21 +134,13 @@ exports.refreshToken = async (req, res) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken || typeof refreshToken !== "string") {
-    throw new AppError(
-      statusCodes.UNAUTHORIZED,
-      messages.INVALID_TOKEN,
-      statusCodes.UNAUTHORIZED,
-    );
+    throw new AppError(httpStatus.UNAUTHORIZED, messages.INVALID_TOKEN);
   }
 
   const user = await User.findOne({ "refreshTokens.token": refreshToken });
 
   if (!user) {
-    throw new AppError(
-      statusCodes.UNAUTHORIZED,
-      messages.INVALID_REFRESH_TOKEN,
-      statusCodes.UNAUTHORIZED,
-    );
+    throw new AppError(httpStatus.UNAUTHORIZED, messages.INVALID_REFRESH_TOKEN);
   }
 
   const validToken = user.refreshTokens.find(
@@ -98,18 +148,13 @@ exports.refreshToken = async (req, res) => {
   );
 
   if (!validToken) {
-    throw new AppError(
-      statusCodes.UNAUTHORIZED,
-      messages.EXPIRE_REFRESH_TOKEN,
-      statusCodes.UNAUTHORIZED,
-    );
+    throw new AppError(httpStatus.UNAUTHORIZED, messages.EXPIRE_REFRESH_TOKEN);
   }
 
   const newAccessToken = user.generateAccessToken();
 
-  return res.status(statusCodes.SUCCESS).json({
-    code: statusCodes.SUCCESS,
+  return res.status(httpStatus.OK).json({
     message: messages.NEW_ACCESS_TOKEN,
-    newAccessToken,
+    data: { newAccessToken },
   });
 };
