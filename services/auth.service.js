@@ -264,17 +264,27 @@ const getUserByEmail = async (email) => {
 };
 
 /**
- * Generate new user get by passing email, nickname and password
+ * Generate new user get by passing email, username and password
  * @param {string} email
- * @param {string} nickname
+ * @param {string} username
  * @param {string} password
  * @returns {User} Get user model new user instance
  */
-const getCreateUser = (email, nickname, password) =>
+const getCreateUser = (
+  email,
+  username,
+  password,
+  score = 0,
+  tier = "I4",
+  questionsAnsweredNb = "0",
+) =>
   new User({
-    email,
-    nickname,
     password,
+    username,
+    email,
+    score,
+    tier,
+    questionsAnsweredNb,
     hashtag: getNanoId(),
   });
 

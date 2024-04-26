@@ -18,11 +18,10 @@ exports.checkEmail = async (req, res) => {
 
 exports.sendOTP = async (req, res) => {
   const { email } = AuthService.getEmailAfterValidation(req.body);
-  await AuthService.checkUserEmailExists(email);
+  await AuthService.checkUserEmailExists(email); // email already checked in checkEmail
   await AuthService.checkUserEmailExistsInOTP(email);
   const otp = await AuthService.getNewOTP();
   await AuthService.saveNewOTPwithEmail(email, otp);
-
   res.status(httpStatus.OK).json({
     message: messages.OTP_SENT,
     data: {
@@ -35,7 +34,6 @@ exports.checkOTP = async (req, res) => {
   const { email, otp } = AuthService.getEmailAndOTPAfterValidation(req.body);
   await AuthService.checkOTPandEmailExists(email, otp);
   await AuthService.findEmailAndOTPtoDelete(email, otp);
-
   res.status(httpStatus.OK).json({
     message: httpStatus[httpStatus.OK],
     data: {
