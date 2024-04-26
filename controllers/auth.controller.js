@@ -43,13 +43,26 @@ exports.checkOTP = async (req, res) => {
 };
 
 exports.signup = async (req, res) => {
-  const { signUpToken, nickname, password } = AuthService.checkUserSignupInfo(
-    req.body,
-  );
+  const data = req.body;
+  const token = data.signUpToken;
+  const name = data.nickname;
+  const pswd = data.password;
+  const { signUpToken, nickname, password } = AuthService.checkUserSignupInfo({
+    signUpToken: token,
+    nickname: name,
+    password: pswd,
+  });
   const { email } = AuthService.checkTokenExpired(signUpToken);
   await AuthService.checkUserEmailExists(email);
   const hashedPassword = await AuthService.getHashedPassword(password);
-  const newUser = AuthService.getCreateUser(email, nickname, hashedPassword);
+  const newUser = AuthService.getCreateUser(
+    email,
+    nickname,
+    hashedPassword,
+    data.score,
+    data.tier,
+    data.questionAnsweredNB,
+  );
   const { accessToken, refreshToken } = AuthService.generateTokens(newUser);
   AuthService.saveUser(newUser);
 

@@ -18,6 +18,12 @@ const userSchema = new mongoose.Schema(
       minlength: 60,
       maxlength: 60,
     },
+    hashtag: {
+      type: String,
+      required: true,
+      minlength: 4,
+      maxlength: 4,
+    },
     userNumber: {
       type: Number,
       unique: true,

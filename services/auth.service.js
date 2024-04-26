@@ -169,6 +169,7 @@ const checkUserSignupInfo = ({ signUpToken, nickname, password }) => {
     password,
   });
   if (error) {
+    console.log("error", error);
     throw error;
   }
   return value;
@@ -268,17 +269,20 @@ const getUserByEmail = async (email) => {
  * @param {string} email
  * @param {string} username
  * @param {string} password
+ * @param {number} score
+ * @param {string} tier
+ * @param {number} questionsAnsweredNb
  * @returns {User} Get user model new user instance
  */
 const getCreateUser = (
   email,
   username,
   password,
-  score = 0,
-  tier = "I4",
-  questionsAnsweredNb = "0",
-) =>
-  new User({
+  score,
+  tier,
+  questionsAnsweredNb,
+) => {
+  return new User({
     password,
     username,
     email,
@@ -287,6 +291,7 @@ const getCreateUser = (
     questionsAnsweredNb,
     hashtag: getNanoId(),
   });
+};
 
 /**
  * Generate refresh and access Token using user model instance
