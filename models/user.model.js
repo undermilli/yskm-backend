@@ -8,7 +8,6 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
-      unique: true,
       minlength: 2,
       maxlength: 15,
       match: /^[a-z0-9]+$/,
@@ -18,6 +17,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 60,
       maxlength: 60,
+    },
+    hashtag: {
+      type: String,
+      required: true,
+      minlength: 4,
+      maxlength: 4,
     },
     userNumber: {
       type: Number,
