@@ -28,6 +28,7 @@ exports.info = async (req, res) => {
       lastVisited: req.user.lastVisited,
       tier: req.user.tier,
       questionsAnsweredNb: req.user.questionsAnsweredNb,
+      hashtag: req.user.hashtag,
     },
   });
 };
