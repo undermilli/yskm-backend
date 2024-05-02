@@ -3,6 +3,7 @@ const { statusCodes } = require("../constants/codes");
 const { messages } = require("../constants/messages");
 const UserService = require("../services/user.service");
 const AuthService = require("../services/auth.service");
+const { ENV } = require("../configs/env.config");
 
 // eslint-disable-next-line consistent-return
 const authMiddleware = async (req, res, next) => {
@@ -15,7 +16,7 @@ const authMiddleware = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
+    const decoded = jwt.verify(token.split(" ")[1], ENV.JWT_SECRET);
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const expirationTime = decoded.exp;
 

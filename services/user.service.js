@@ -3,6 +3,8 @@ const User = require("../models/user.model");
 const AppError = require("../utils/app-error.util");
 const { statusCodes } = require("../constants/codes");
 const { messages } = require("../constants/messages");
+const { ENV } = require("../configs/env.config");
+
 const {
   updateUserValidator,
   updatePasswordValidator,
@@ -14,7 +16,7 @@ const {
  * @returns {string} userId
  */
 const getUserIdFromToken = (authKey = "") => {
-  const decoded = jwt.verify(authKey, process.env.JWT_SECRET);
+  const decoded = jwt.verify(authKey, ENV.JWT_SECRET);
   return decoded.userId;
 };
 

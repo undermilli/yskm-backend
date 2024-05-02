@@ -7,7 +7,7 @@ const http = require("http");
 
 const { ENV } = require("./configs/env.config");
 const logger = require("./middlewares/winston-logger.middleware");
-const connectDB = require("./connectDB");
+const connectDB = require("./configs/connect-db.config");
 const apiRouter = require("./routes/api.route");
 const errorHandler = require("./middlewares/error-handler.middleware");
 const { messages } = require("./constants/messages");

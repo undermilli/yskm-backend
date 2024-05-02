@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { ENV } = require("../configs/env.config");
 
 const userSchema = new mongoose.Schema(
   {
@@ -106,8 +107,8 @@ userSchema.methods.generateAccessToken = function () {
     userId: this._id,
   };
 
-  return jwt.sign(tokenPayload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_ACCESS_DURATION,
+  return jwt.sign(tokenPayload, ENV.JWT_SECRET, {
+    expiresIn: ENV.JWT_ACCESS_DURATION,
   });
 };
 
@@ -116,8 +117,8 @@ userSchema.methods.generateRefreshToken = function () {
     username: this.username,
   };
 
-  const refreshToken = jwt.sign(refreshTokenPayload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_DURATION,
+  const refreshToken = jwt.sign(refreshTokenPayload, ENV.JWT_SECRET, {
+    expiresIn: ENV.JWT_REFRESH_DURATION,
   });
 
   if (this.refreshTokens.length > 0) {
