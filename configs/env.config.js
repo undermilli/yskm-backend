@@ -17,11 +17,7 @@ exports.ENV = {
   MAIL_HOST: loadEnvVariable("MAIL_HOST"),
   MAIL_PORT: loadEnvVariable("MAIL_PORT"),
   MAIL_USER: loadEnvVariable("MAIL_USER"),
-  MAIL_PASS: loadEnvVariable("MAIL_PASS"),
   MAIL_FROM: loadEnvVariable("MAIL_FROM"),
   SENDGRID_API_KEY: loadEnvVariable("SENDGRID_API_KEY"),
   MONGODB_URL: loadEnvVariable("MONGODB_URL"),
-  SOCKET_CORS_ORIGIN: loadEnvVariable("SOCKET_CORS_ORIGIN"),
-  KEY: loadEnvVariable("KEY"),
-  CERT: loadEnvVariable("CERT"),
 };
