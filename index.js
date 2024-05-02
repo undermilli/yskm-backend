@@ -16,7 +16,7 @@ const { messages } = require("./constants/messages");
 const { statusCodes } = require("./constants/codes");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 connectDB();
 
