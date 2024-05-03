@@ -8,9 +8,18 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
-      minlength: 2,
-      maxlength: 15,
-      match: /^[a-z0-9]+$/,
+      minlength: 3,
+      validate: {
+        // eslint-disable-next-line object-shorthand
+        validator: function (nickname) {
+          return Buffer.byteLength(nickname, "utf8") <= 16;
+        },
+        message: (props) => `${props.value} is longer than 16 bytes`,
+      },
+      match: [
+        /^[\uAC00-\uD7AFa-zA-Z0-9_-]+$/,
+        "Nickname can only contain Korean characters, English alphabets, numbers, hyphens, and underscores.",
+      ],
     },
     password: {
       type: String,
