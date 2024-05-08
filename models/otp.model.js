@@ -26,9 +26,9 @@ const otpSchema = new mongoose.Schema({
 async function sendVerificationEmail(email, otp) {
   await mailSender(
     email,
-    "Verification Email",
-    `<h1>Please confirm your OTP</h1><br>
-    <p>Here is your OTP code: ${otp}</p>`,
+    "YSKM 인증번호 메일입니다",
+    `<h1>인증번호를 확인하고 입력해 주세요</h1><br>
+    <p>인증번호: ${otp}</p>`,
   );
 }
 // eslint-disable-next-line func-names
