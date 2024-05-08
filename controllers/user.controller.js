@@ -34,11 +34,9 @@ exports.info = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const { email, description } = UserService.checkEmailAndDescription(req.body);
+  const { description } = UserService.checkEmailAndDescription(req.body);
 
-  req.user.email = email;
   req.user.description = description;
-
   const updatedUser = await AuthService.saveUser(req.user);
 
   res.status(statusCodes.SUCCESS).json({
