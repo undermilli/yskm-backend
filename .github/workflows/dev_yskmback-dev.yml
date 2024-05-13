@@ -57,5 +57,5 @@ jobs:
         with:
           app-name: "yskmback-dev"
           slot-name: "Production"
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9648EFFFD40B468AA51487AA34C51732 }}
+          publish-profile: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BLACK_MUSHROOM_057C06200  }}
           package: .
