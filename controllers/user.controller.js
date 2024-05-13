@@ -121,7 +121,7 @@ exports.updateScore = async (req, res) => {
 
 exports.getUserPercentagePosition = async (req, res) => {
   try {
-    const { username } = req.user;
+    const { email } = req.user;
     const users = await User.find();
     const sortedUsers = users.sort((a, b) => {
       if (a.tier === b.tier) {
@@ -129,9 +129,7 @@ exports.getUserPercentagePosition = async (req, res) => {
       }
       return TIER_LIST.indexOf(b.tier) - TIER_LIST.indexOf(a.tier);
     });
-    const userIndex = sortedUsers.findIndex(
-      (user) => user.username === username,
-    );
+    const userIndex = sortedUsers.findIndex((user) => user.email === email);
     const userPercentagePosition = Math.ceil(
       ((userIndex + 1) / sortedUsers.length) * 100,
     );
